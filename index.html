@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PayoffPal – Your Personal Debt Management Companion</title>
+    <meta name="description" content="Take control of your loans. PayoffPal helps you track balances, visualize payoff timelines, and get AI-powered insights to become debt-free faster." />
+
+    <!-- Open Graph / Facebook / WhatsApp / Telegram / iMessage -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PayoffPal – Your Personal Debt Management Companion" />
+    <meta property="og:description" content="Take control of your loans. Track balances, visualize payoff timelines, and get AI-powered insights to become debt-free faster." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="PayoffPal – Take Control of Your Loans." />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PayoffPal – Your Personal Debt Management Companion" />
+    <meta name="twitter:description" content="Take control of your loans. Track balances, visualize payoff timelines, and get AI-powered insights to become debt-free faster." />
+    <meta name="twitter:image" content="/og-image.png" />
+    <link rel="icon" type="image/png" href="/favicon-v2.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'dark-bg': '#1a202c',
+              'dark-card': '#2d3748',
+              'dark-border': '#4a5568',
+              'dark-text': '#e2e8f0',
+              'dark-text-secondary': '#a0aec0',
+              'accent': '#00f5d4',
+              'accent-hover': '#00d9b5',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.4"
+  }
+}
+</script>
+</head>
+  <body class="bg-dark-bg text-dark-text">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
