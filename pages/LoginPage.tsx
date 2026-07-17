@@ -378,6 +378,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialMode, onBack }) => {
                     >
                         {loading ? (isSignUp ? 'Creating Account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign In')}
                     </button>
+                    {isSignUp && (
+                        <p className="text-xs text-dark-text-secondary text-center">
+                            By creating an account, you agree to our{' '}
+                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-hover underline">
+                                Privacy Policy
+                            </a>.
+                        </p>
+                    )}
                     <button
                         onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
                         className="w-full text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
