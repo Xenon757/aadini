@@ -80,6 +80,11 @@ const schema = a.schema({
 
   createPlaidLinkToken: a
     .mutation()
+    .arguments({
+      // Origin-based OAuth return URL (validated against an allowlist in
+      // the handler); required for banks that use OAuth-based login.
+      redirectUri: a.string(),
+    })
     .returns(a.ref('PlaidLinkTokenResult'))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(plaidFunction)),

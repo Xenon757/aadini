@@ -7,6 +7,10 @@ export const plaidFunction = defineFunction({
   environment: {
     PLAID_CLIENT_ID: secret('PLAID_CLIENT_ID'),
     PLAID_SECRET: secret('PLAID_SECRET'),
-    PLAID_ENV: 'sandbox',
+    // Resolved at deploy time: local `ampx sandbox` defaults to Plaid's
+    // sandbox; the hosted branch flips to production by setting the
+    // PLAID_ENV env var in the Amplify console build environment
+    // (alongside the matching production PLAID_SECRET secret).
+    PLAID_ENV: process.env.PLAID_ENV ?? 'sandbox',
   },
 });

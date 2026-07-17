@@ -43,7 +43,17 @@ type PlaidArgs = {
   institutionId?: string;
   institutionName?: string;
   itemId?: string;
+  redirectUri?: string;
 };
+
+/**
+ * OAuth-institution return URLs Link is allowed to redirect to. Must
+ * mirror the "Allowed redirect URIs" registered in the Plaid dashboard.
+ */
+const ALLOWED_REDIRECT_URIS = new Set([
+  'http://localhost:3000/finances',
+  'https://main.d1ds52t71fj84r.amplifyapp.com/finances',
+]);
 
 /**
  * Amplify Gen 2's generated resolver invokes the function with fieldName/
@@ -85,13 +95,18 @@ async function tokensForUser(sub: string): Promise<TokenRecord[]> {
   return (result.Items ?? []) as TokenRecord[];
 }
 
-async function createLinkToken(sub: string) {
+async function createLinkToken(sub: string, args: PlaidArgs) {
+  const redirectUri =
+    args.redirectUri && ALLOWED_REDIRECT_URIS.has(args.redirectUri)
+      ? args.redirectUri
+      : undefined;
   const response = await plaid.linkTokenCreate({
     user: { client_user_id: sub },
     client_name: 'PayoffPal',
     products: [Products.Liabilities, Products.Transactions],
     country_codes: [CountryCode.Us],
     language: 'en',
+    ...(redirectUri ? { redirect_uri: redirectUri } : {}),
   });
   return {
     linkToken: response.data.link_token,
@@ -218,7 +233,7 @@ export const handler = async (event: PlaidEvent) => {
   try {
     switch (fieldName) {
       case 'createPlaidLinkToken':
-        return await createLinkToken(sub);
+        return await createLinkToken(sub, event.arguments);
       case 'exchangePlaidPublicToken':
         return await exchangePublicToken(sub, event.arguments);
       case 'syncPlaidData':
