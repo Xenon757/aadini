@@ -744,7 +744,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                     <div className="border-t border-dark-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-dark-text-secondary">
                         <p>Legal Disclaimer: This app provides general educational guidance only and does not replace financial advice.</p>
                         <div className="flex items-center gap-4">
-                            <span className="hover:text-dark-text transition-colors cursor-pointer">Privacy Policy</span>
+                            <a href="/privacy" className="hover:text-dark-text transition-colors">Privacy Policy</a>
                             <span className="hover:text-dark-text transition-colors cursor-pointer">Terms</span>
                             <span className="hover:text-dark-text transition-colors cursor-pointer">Contact</span>
                         </div>

@@ -5,6 +5,7 @@ import { FinanceProvider, useFinance } from './contexts/FinanceContext';
 import { HomeIcon, WalletIcon, DocumentMagnifyingGlassIcon, ChartBarIcon, Cog6ToothIcon } from './components/Icons';
 import LoginPage from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const FinancesPage = lazy(() => import('./pages/FinancesPage'));
@@ -15,6 +16,12 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AppContent: React.FC = () => {
     const { user, isGuest, loading, pendingAuthMode, continueAsGuest } = useAuth();
     const [preAuthMode, setPreAuthMode] = useState<'signin' | 'signup' | null>(null);
+
+    // Publicly reachable regardless of auth state (linked from the Plaid
+    // application and external consent screens).
+    if (window.location.pathname === '/privacy') {
+        return <PrivacyPage />;
+    }
 
     if (loading) {
         return (

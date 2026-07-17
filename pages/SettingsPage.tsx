@@ -250,6 +250,9 @@ const SettingsPage: React.FC = () => {
                     <p className="text-dark-text-secondary">
                         Whether you're evaluating a new loan or managing multiple debts, PayoffPal provides clear, actionable insights like your debt-to-income ratio, loan affordability rating (Safe, Borderline, or Not Recommended), and personalized payoff timeline.
                     </p>
+                    <a href="/privacy" className="inline-block text-sm text-accent hover:text-accent-hover underline">
+                        Privacy Policy
+                    </a>
                 </div>
 
                 <div className="bg-dark-card p-6 rounded-lg border border-dark-border">
