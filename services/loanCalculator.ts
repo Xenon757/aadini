@@ -22,6 +22,17 @@ export const calculateMinimumPayment = (principal: number, annualRate: number, t
     return isNaN(payment) || !isFinite(payment) ? 0 : payment;
 };
 
+/**
+ * A loan's actual minimum payment: the user's manual override if set,
+ * otherwise the calculated PMT. Single source of truth used everywhere
+ * a "minimum payment" figure is needed, so overrides are never silently ignored.
+ */
+export const getEffectiveMinPayment = (loan: Loan): number => {
+    return loan.minPaymentOverride !== undefined
+        ? loan.minPaymentOverride
+        : calculateMinimumPayment(loan.originalAmount > 0 ? loan.originalAmount : loan.balance, loan.apr, loan.term);
+};
+
 const runPayoffSimulation = (
     loans: Loan[], 
     totalMonthlyPayment: number
@@ -35,9 +46,7 @@ const runPayoffSimulation = (
     }, {} as { [key: string]: number });
 
     const minPayments = sortedLoans.reduce((acc, loan) => {
-        acc[loan.id] = loan.minPaymentOverride !== undefined
-            ? loan.minPaymentOverride
-            : calculateMinimumPayment(loan.originalAmount > 0 ? loan.originalAmount : loan.balance, loan.apr, loan.term);
+        acc[loan.id] = getEffectiveMinPayment(loan);
         return acc;
     }, {} as { [key: string]: number });
 
@@ -127,12 +136,7 @@ export const calculateAvalanchePayoff = (loans: Loan[], extraPayment: number): {
         };
     }
 
-    const totalMinimumPayment = loans.reduce((acc, loan) => {
-        const pmt = loan.minPaymentOverride !== undefined
-            ? loan.minPaymentOverride
-            : calculateMinimumPayment(loan.originalAmount > 0 ? loan.originalAmount : loan.balance, loan.apr, loan.term);
-        return acc + pmt;
-    }, 0);
+    const totalMinimumPayment = loans.reduce((acc, loan) => acc + getEffectiveMinPayment(loan), 0);
 
     // Baseline calculation (no extra payment)
     const baselineResult = runPayoffSimulation(loans, totalMinimumPayment);

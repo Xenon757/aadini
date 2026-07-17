@@ -44,16 +44,19 @@ export const DTI_THRESHOLDS: { [key in RiskProfile]: number } = {
     [RiskProfile.High]: 0.40,
 };
 
+// One representative subcategory per EXPENSE_CATEGORIES entry below, so every
+// seeded name matches a real accordion line item exactly (previously these
+// diverged, e.g. "Food & Groceries" here vs. "Groceries" in the accordion).
 export const STANDARD_EXPENSES = [
     'Rent',
-    'Food & Groceries',
-    'Transportation',
-    'Life Insurance',
-    'Healthcare',
-    'Entertainment',
-    'Utilities',
     'Auto Insurance',
-    'Miscellaneous',
+    'Groceries',
+    'Life Insurance',
+    'Health Insurance',
+    'Daycare / Babysitter',
+    'Streaming & Subscriptions',
+    'Personal Care',
+    'Tuition',
 ];
 
 export interface ExpenseCategory {

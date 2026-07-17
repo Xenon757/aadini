@@ -4,8 +4,9 @@ import { Finances, Expense, Loan, LoanType } from '../types';
 import { LOAN_TERMS, EXPENSE_CATEGORIES } from '../constants';
 import { computeMonthlyTakeHome, zipToState, getLocalInfo, getStateName, getStateStdDed } from '../services/taxCalculator';
 import { PlusCircleIcon, TrashIcon } from '../components/Icons';
-import { calculateMinimumPayment } from '../services/loanCalculator';
+import { calculateMinimumPayment, getEffectiveMinPayment } from '../services/loanCalculator';
 import TermCombobox from '../components/TermCombobox';
+import PlaidLinkButton from '../components/PlaidLinkButton';
 
 const ChevronIcon: React.FC<{ open: boolean }> = ({ open }) => (
     <svg
@@ -315,36 +316,21 @@ const FinancesPage: React.FC = () => {
         setFinances(prev => ({ ...prev, loans: [...prev.loans, newLoan] }));
     };
 
+    // Property-tax <-> expense sync for Mortgage loans is handled centrally by
+    // FinanceContext's effect (reactive to finances.loans), so this only needs
+    // to update the loan itself.
     const handleLoanChange = (id: string, field: keyof Loan, value: any) => {
-        setFinances(prev => {
-            const updatedLoans = prev.loans.map(loan => {
+        setFinances(prev => ({
+            ...prev,
+            loans: prev.loans.map(loan => {
                 if (loan.id === id) {
                     const newLoan = { ...loan, [field]: value };
                     if (field === 'balance') newLoan.originalAmount = value;
                     return newLoan;
                 }
                 return loan;
-            });
-
-            let updatedExpenses = prev.expenses;
-            if (field === 'type' || field === 'monthlyPropertyTax') {
-                const loan = updatedLoans.find(l => l.id === id);
-                const propertyTaxExpenseId = `property-tax-${id}`;
-                const existingPT = prev.expenses.find(exp => exp.id === propertyTaxExpenseId);
-                if (loan && loan.type === LoanType.Mortgage && loan.monthlyPropertyTax && loan.monthlyPropertyTax > 0) {
-                    if (existingPT) {
-                        updatedExpenses = prev.expenses.map(exp =>
-                            exp.id === propertyTaxExpenseId ? { ...exp, amount: loan.monthlyPropertyTax! } : exp
-                        );
-                    } else {
-                        updatedExpenses = [...prev.expenses, { id: propertyTaxExpenseId, name: 'Property Tax', amount: loan.monthlyPropertyTax }];
-                    }
-                } else if (existingPT) {
-                    updatedExpenses = prev.expenses.filter(exp => exp.id !== propertyTaxExpenseId);
-                }
-            }
-            return { ...prev, loans: updatedLoans, expenses: updatedExpenses };
-        });
+            }),
+        }));
     };
 
     const handleRemoveLoan = (id: string) => {
@@ -360,13 +346,12 @@ const FinancesPage: React.FC = () => {
 
     const isNegativeAmortization = (loan: Loan): boolean => {
         const monthlyInterest = (loan.balance * (loan.apr / 100)) / 12;
-        const effectiveMin = loan.minPaymentOverride !== undefined ? loan.minPaymentOverride : getCalculatedMin(loan);
-        return effectiveMin < monthlyInterest;
+        return getEffectiveMinPayment(loan) < monthlyInterest;
     };
 
     const knownCategoryNames = new Set(EXPENSE_CATEGORIES.flatMap(cat => cat.subcategories.map(s => s.name)));
     const customExpenses = finances.expenses.filter(e =>
-        (!knownCategoryNames.has(e.name) && !e.id.startsWith('property-tax-') && !e.id.startsWith('cat-')) || e.id.startsWith('expense-')
+        (!knownCategoryNames.has(e.name) && !e.id.startsWith('property-tax-') && !e.id.startsWith('cat-')) || e.id.startsWith('expense-') || e.id.startsWith('plaid-recurring-')
     );
 
     const allCategoryTotal = EXPENSE_CATEGORIES.reduce((sum, cat) =>
@@ -494,7 +479,14 @@ const FinancesPage: React.FC = () => {
                             {customExpenses.map(expense => (
                                 <div key={expense.id} className="flex gap-3 items-end">
                                     <div className="flex-1">
-                                        <label className="block text-sm text-dark-text-secondary mb-1">Name</label>
+                                        <label className="block text-sm text-dark-text-secondary mb-1">
+                                            Name
+                                            {expense.plaidItemId && (
+                                                <span className="ml-2 text-xs bg-accent/10 text-accent border border-accent/30 rounded-full px-2 py-0.5">
+                                                    🏦 {expense.institutionName ?? 'bank'}
+                                                </span>
+                                            )}
+                                        </label>
                                         <input
                                             type="text"
                                             value={expense.name}
@@ -532,7 +524,10 @@ const FinancesPage: React.FC = () => {
 
                 {/* Your Loans */}
                 <div className="bg-dark-card p-6 sm:p-8 rounded-lg border border-dark-border">
-                    <h2 className="text-xl font-semibold mb-6">Your Loans</h2>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                        <h2 className="text-xl font-semibold">Your Loans</h2>
+                        <PlaidLinkButton />
+                    </div>
                     <div className="space-y-5">
                         {finances.loans.map(loan => {
                             const calcMin = getCalculatedMin(loan);
@@ -540,13 +535,20 @@ const FinancesPage: React.FC = () => {
                             return (
                                 <div key={loan.id} className={`bg-gray-900/50 p-5 rounded-lg border ${isNegativeAmortization(loan) ? 'border-amber-500/60' : 'border-dark-border'}`}>
                                     <div className="flex justify-between items-center mb-4">
-                                        <input
-                                            type="text"
-                                            value={loan.name}
-                                            onChange={e => handleLoanChange(loan.id, 'name', e.target.value)}
-                                            className="text-lg font-semibold bg-transparent border-0 p-0 focus:ring-0 focus:text-accent"
-                                            placeholder="Loan Name"
-                                        />
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <input
+                                                type="text"
+                                                value={loan.name}
+                                                onChange={e => handleLoanChange(loan.id, 'name', e.target.value)}
+                                                className="text-lg font-semibold bg-transparent border-0 p-0 focus:ring-0 focus:text-accent"
+                                                placeholder="Loan Name"
+                                            />
+                                            {loan.plaidItemId && (
+                                                <span className="flex-shrink-0 text-xs bg-accent/10 text-accent border border-accent/30 rounded-full px-2 py-0.5">
+                                                    🏦 {loan.institutionName ?? 'bank'}
+                                                </span>
+                                            )}
+                                        </div>
                                         <button onClick={() => handleRemoveLoan(loan.id)} className="text-red-500 hover:text-red-400">
                                             <TrashIcon />
                                         </button>

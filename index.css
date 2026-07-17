@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark-bg: #1a202c;
+  --color-dark-card: #2d3748;
+  --color-dark-border: #4a5568;
+  --color-dark-text: #e2e8f0;
+  --color-dark-text-secondary: #a0aec0;
+  --color-accent: #00f5d4;
+  --color-accent-hover: #00d9b5;
+}

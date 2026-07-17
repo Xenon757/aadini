@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useMemo, useEffect } from 'react';
-import useSupabaseStorage from '../hooks/useSupabaseStorage';
+import React, { createContext, useContext, useMemo, useEffect, useState, useRef } from 'react';
+import useAmplifyStorage from '../hooks/useAmplifyStorage';
+import { useAuth } from './AuthContext';
 import { Finances, Settings, RiskProfile, Expense, LoanType } from '../types';
-import { calculateMinimumPayment } from '../services/loanCalculator';
+import { getEffectiveMinPayment } from '../services/loanCalculator';
 import { STANDARD_EXPENSES } from '../constants';
+import ImportGuestDataModal from '../components/ImportGuestDataModal';
 
 interface FinanceContextType {
     finances: Finances;
@@ -15,6 +17,7 @@ interface FinanceContextType {
     monthlyLeftoverMoney: number;
     debtToIncomeRatio: number;
     loading: boolean;
+    deleteAllData: () => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -40,8 +43,47 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         riskProfile: RiskProfile.Average,
     }), []);
 
-    const [finances, setFinances, financesLoading] = useSupabaseStorage<Finances>('finances', initialFinances, 'user_finances');
-    const [settings, setSettings, settingsLoading] = useSupabaseStorage<Settings>('settings', initialSettings, 'user_settings');
+    const [finances, setFinances, financesLoading, deleteRemoteFinances] = useAmplifyStorage<Finances>('finances', initialFinances, 'Finances');
+    const [settings, setSettings, settingsLoading, deleteRemoteSettings] = useAmplifyStorage<Settings>('settings', initialSettings, 'Settings');
+    const { user, isGuest } = useAuth();
+
+    // Guest data is never silently discarded on sign-in: if guest_finances/guest_settings
+    // exist in localStorage once a real user is signed in, always ask before either
+    // merging them into the account or clearing them.
+    const [importPrompt, setImportPrompt] = useState<{ guestFinances: Finances | null; guestSettings: Settings | null } | null>(null);
+    const reconciledUserRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!user || isGuest) return;
+        if (reconciledUserRef.current === user.userId) return;
+        reconciledUserRef.current = user.userId;
+
+        const guestFinancesRaw = localStorage.getItem('guest_finances');
+        const guestSettingsRaw = localStorage.getItem('guest_settings');
+        if (!guestFinancesRaw && !guestSettingsRaw) return;
+
+        setImportPrompt({
+            guestFinances: guestFinancesRaw ? JSON.parse(guestFinancesRaw) : null,
+            guestSettings: guestSettingsRaw ? JSON.parse(guestSettingsRaw) : null,
+        });
+    }, [user?.userId, isGuest]);
+
+    const resolveImportPrompt = (choice: 'import' | 'discard') => {
+        if (choice === 'import' && importPrompt) {
+            if (importPrompt.guestFinances) setFinances(importPrompt.guestFinances);
+            if (importPrompt.guestSettings) setSettings(importPrompt.guestSettings);
+        }
+        localStorage.removeItem('guest_finances');
+        localStorage.removeItem('guest_settings');
+        setImportPrompt(null);
+    };
+
+    const deleteAllData = async () => {
+        if (!isGuest) {
+            await Promise.all([deleteRemoteFinances(), deleteRemoteSettings()]);
+        }
+        localStorage.clear();
+    };
 
     // Migrate old "Housing (Rent/Mortgage)" and "Rent / Mortgage" to "Rent"
     useEffect(() => {
@@ -102,10 +144,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const { monthlyDebtPayments, totalDebt, monthlyExpensesTotal, monthlyLeftoverMoney, debtToIncomeRatio } = useMemo(() => {
         const totalDebt = finances.loans.reduce((acc, loan) => acc + loan.balance, 0);
         
-        const monthlyDebtPayments = finances.loans.reduce((acc, loan) => {
-            const pmt = calculateMinimumPayment(loan.originalAmount > 0 ? loan.originalAmount : loan.balance, loan.apr, loan.term);
-            return acc + pmt;
-        }, 0);
+        const monthlyDebtPayments = finances.loans.reduce((acc, loan) => acc + getEffectiveMinPayment(loan), 0);
         
         const monthlyExpensesTotal = finances.expenses.reduce((acc, expense) => acc + expense.amount, 0);
         
@@ -138,11 +177,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         monthlyLeftoverMoney,
         debtToIncomeRatio,
         loading,
+        deleteAllData,
     };
 
     return (
         <FinanceContext.Provider value={value}>
             {children}
+            {importPrompt && (
+                <ImportGuestDataModal
+                    onImport={() => resolveImportPrompt('import')}
+                    onDiscard={() => resolveImportPrompt('discard')}
+                />
+            )}
         </FinanceContext.Provider>
     );
 };

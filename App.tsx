@@ -1,11 +1,10 @@
 import React, { lazy, Suspense, useState } from 'react';
-import { HashRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FinanceProvider, useFinance } from './contexts/FinanceContext';
 import { HomeIcon, WalletIcon, DocumentMagnifyingGlassIcon, ChartBarIcon, Cog6ToothIcon } from './components/Icons';
 import LoginPage from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
-import PasswordResetPage from './pages/PasswordResetPage';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const FinancesPage = lazy(() => import('./pages/FinancesPage'));
@@ -14,7 +13,7 @@ const PayoffPlanPage = lazy(() => import('./pages/PayoffPlanPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 const AppContent: React.FC = () => {
-    const { user, isGuest, loading, pendingAuthMode, continueAsGuest, isPasswordRecovery } = useAuth();
+    const { user, isGuest, loading, pendingAuthMode, continueAsGuest } = useAuth();
     const [preAuthMode, setPreAuthMode] = useState<'signin' | 'signup' | null>(null);
 
     if (loading) {
@@ -23,10 +22,6 @@ const AppContent: React.FC = () => {
                 <p className="text-lg text-dark-text-secondary">Loading...</p>
             </div>
         );
-    }
-
-    if (isPasswordRecovery) {
-        return <PasswordResetPage />;
     }
 
     if (!user && !isGuest) {
@@ -130,7 +125,7 @@ const MainApp: React.FC = () => {
     }
 
     return (
-        <HashRouter>
+        <BrowserRouter>
             <div className="flex flex-col min-h-screen bg-dark-bg text-dark-text font-sans">
                 <AppHeader />
                 <main className="flex-grow pt-14 pb-28">
@@ -166,7 +161,7 @@ const MainApp: React.FC = () => {
                     </nav>
                 </footer>
             </div>
-        </HashRouter>
+        </BrowserRouter>
     );
 };
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinance } from '../contexts/FinanceContext';
-import { calculateAvalanchePayoff, calculateMinimumPayment } from '../services/loanCalculator';
+import { calculateAvalanchePayoff, getEffectiveMinPayment } from '../services/loanCalculator';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import LoanTrellisChart from '../components/LoanTrellisChart';
 
@@ -169,9 +169,7 @@ const PayoffPlanPage: React.FC = () => {
                         <h2 className="text-xl font-semibold mb-4">Payoff Order (Avalanche Method)</h2>
                         <ul className="space-y-4">
                             {sortedLoans.map((loan, index) => {
-                                const minPmt = loan.minPaymentOverride !== undefined
-                                    ? loan.minPaymentOverride
-                                    : calculateMinimumPayment(loan.originalAmount > 0 ? loan.originalAmount : loan.balance, loan.apr, loan.term);
+                                const minPmt = getEffectiveMinPayment(loan);
                                 return (
                                     <li key={loan.id} className="p-4 bg-gray-900/50 rounded-md flex justify-between items-center gap-4">
                                         <div className="flex items-center">

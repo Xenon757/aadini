@@ -313,7 +313,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                     </div>
                     <div style={heroStyle(240)}>
                         <p className="text-xl text-dark-text-secondary mb-10 max-w-xl mx-auto leading-relaxed">
-                            Instantly see if a loan is affordable and build a smart payoff plan — no bank login required.
+                            Instantly see if a loan is affordable and build a smart payoff plan — bank connection optional.
                         </p>
                     </div>
                     <div style={heroStyle(360)}>
@@ -337,7 +337,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                         >
                             Try it with Guest Mode
                         </button>
-                        <p className="text-xs text-dark-text-secondary mt-3">No Bank Login Required</p>
+                        <p className="text-xs text-dark-text-secondary mt-3">Bank Connection Optional</p>
                     </div>
                     <button
                         onClick={scrollToHowItWorks}
@@ -668,7 +668,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                                 </thead>
                                 <tbody>
                                     {[
-                                        ['Require bank login', 'No bank access needed'],
+                                        ['Require bank login', 'Optional — connect or enter manually'],
                                         ['Push refinancing products', 'No upsells, ever'],
                                         ['Complex dashboards', 'Simple, guided flow'],
                                     ].map(([other, ours], i) => (
@@ -723,7 +723,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                         <div className="flex justify-center mt-10">
                             <img src="/PayoffPal_Logo_Light.png" alt="PayoffPal" className="w-64 h-auto object-contain opacity-90" />
                         </div>
-                        <p className="text-sm text-dark-text-secondary mt-6">No credit card. No bank login. Just clarity.</p>
+                        <p className="text-sm text-dark-text-secondary mt-6">No credit card required. Bank connection optional. Just clarity.</p>
                     </div>
                 </FadeInSection>
             </section>

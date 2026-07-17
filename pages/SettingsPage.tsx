@@ -4,10 +4,11 @@ import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { RiskProfile } from '../types';
 import { CheckCircleIcon } from '../components/Icons';
+import ConnectedBanksCard from '../components/ConnectedBanksCard';
 
 const SettingsPage: React.FC = () => {
-    const { settings, setSettings } = useFinance();
-    const { user, isGuest, signOut, openAuth, updatePassword } = useAuth();
+    const { settings, setSettings, deleteAllData } = useFinance();
+    const { user, isGuest, signOut, openAuth, changePassword } = useAuth();
     const [pwCurrent, setPwCurrent] = useState('');
     const [pwNew, setPwNew] = useState('');
     const [pwConfirm, setPwConfirm] = useState('');
@@ -15,13 +16,17 @@ const SettingsPage: React.FC = () => {
     const [pwError, setPwError] = useState<string | null>(null);
     const [pwSuccess, setPwSuccess] = useState(false);
 
-    const isEmailUser = user?.app_metadata?.provider === 'email';
+    const isEmailUser = user?.signInMethod === 'email';
 
     const PASSWORD_REQUIREMENTS = 'Password must be at least 8 characters and include uppercase and lowercase letters, a number, and a special character (e.g. !@#$%).';
 
     const handleChangePassword = async () => {
         setPwError(null);
         setPwSuccess(false);
+        if (!pwCurrent) {
+            setPwError('Please enter your current password.');
+            return;
+        }
         if (pwNew.length < 8) {
             setPwError(PASSWORD_REQUIREMENTS);
             return;
@@ -32,7 +37,7 @@ const SettingsPage: React.FC = () => {
         }
         try {
             setPwLoading(true);
-            await updatePassword(pwNew);
+            await changePassword(pwCurrent, pwNew);
             setPwSuccess(true);
             setPwCurrent('');
             setPwNew('');
@@ -55,9 +60,9 @@ const SettingsPage: React.FC = () => {
         setSettings(prev => ({...prev, riskProfile: profile}));
     };
 
-    const handleDeleteAllData = () => {
+    const handleDeleteAllData = async () => {
         if (window.confirm('Are you sure you want to delete all your data? This action cannot be undone.')) {
-            localStorage.clear();
+            await deleteAllData();
             window.location.reload();
         }
     };
@@ -148,6 +153,16 @@ const SettingsPage: React.FC = () => {
                                 </div>
                             )}
                             <div>
+                                <label className="block text-sm text-dark-text-secondary mb-1">Current Password</label>
+                                <input
+                                    type="password"
+                                    value={pwCurrent}
+                                    onChange={e => { setPwCurrent(e.target.value); setPwError(null); setPwSuccess(false); }}
+                                    placeholder="Your current password"
+                                    className="w-full bg-dark-bg border-dark-border rounded-md focus:ring-accent focus:border-accent"
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-sm text-dark-text-secondary mb-1">New Password</label>
                                 <input
                                     type="password"
@@ -213,6 +228,8 @@ const SettingsPage: React.FC = () => {
                         </label>
                     </div>
                 </div>
+
+                <ConnectedBanksCard />
 
                 <div className="bg-dark-card p-6 rounded-lg border border-dark-border">
                     <h2 className="text-xl font-semibold mb-4">Data Management</h2>

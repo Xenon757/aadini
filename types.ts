@@ -8,12 +8,19 @@ export interface Loan {
     term: number; // in years
     originalAmount: number;
     monthlyPropertyTax?: number;
+    minPaymentOverride?: number;
+    /** Set when imported via Plaid; links the loan to a connected bank. */
+    plaidItemId?: string;
+    institutionName?: string;
 }
 
 export interface Expense {
     id: string;
     name:string;
     amount: number;
+    /** Set when imported via Plaid; links the expense to a connected bank. */
+    plaidItemId?: string;
+    institutionName?: string;
 }
 
 export enum LoanType {

@@ -408,7 +408,7 @@ export function computeMonthlyTakeHome(
     const numEx   = filing === 'married' ? 2 : 1;
 
     const fedDed     = Math.max(itemizedAnnual, FED_STD_DED[filing]);
-    const fedTaxable = Math.max(0, gross - c401 - fedDed);
+    const fedTaxable = Math.max(0, gross - c401 - cIRA - fedDed);
     const fedTax     = calcBrackets(fedTaxable, FEDERAL_BRACKETS[filing] as Bracket[]);
 
     const ficaBase  = Math.max(0, gross - c401);
