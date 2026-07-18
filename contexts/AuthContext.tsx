@@ -101,19 +101,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => hubListener();
     }, []);
 
+    /**
+     * Removes every trace of Amplify/Cognito auth state from browser
+     * storage: stale sessions AND interrupted-OAuth "inflight" locks, both
+     * of which make signInWithRedirect throw. Guest-mode keys (guestMode,
+     * guest_finances, guest_settings) don't match these prefixes and are
+     * untouched.
+     */
+    const purgeStaleAuthState = (): void => {
+        for (const store of [localStorage, sessionStorage]) {
+            const stale: string[] = [];
+            for (let i = 0; i < store.length; i++) {
+                const key = store.key(i);
+                if (!key) continue;
+                if (key.startsWith('CognitoIdentityServiceProvider') || key.startsWith('com.amplify') || key.startsWith('amplify')) {
+                    stale.push(key);
+                }
+            }
+            stale.forEach(key => store.removeItem(key));
+        }
+    };
+
     const signInWithGoogle = async (): Promise<void> => {
         try {
             await signInWithRedirect({ provider: 'Google' });
-        } catch (err) {
-            // A stale/half-broken session in browser storage makes Amplify
-            // throw "already authenticated" — clear it and retry once so
-            // users aren't stuck behind a generic error.
-            if (err instanceof Error && err.name === 'UserAlreadyAuthenticatedException') {
+        } catch {
+            // Any leftover state from an old session or an interrupted
+            // sign-in can block a new redirect. Clear everything auth-owned
+            // and retry once; only surface an error if the clean retry fails.
+            try {
                 await amplifySignOut();
-                await signInWithRedirect({ provider: 'Google' });
-                return;
+            } catch {
+                // No signable-out session — fine, purge below handles the rest.
             }
-            throw err;
+            purgeStaleAuthState();
+            await signInWithRedirect({ provider: 'Google' });
         }
     };
 
