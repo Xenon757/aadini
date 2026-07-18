@@ -38,7 +38,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialMode, onBack }) => {
             setError(null);
             await signInWithGoogle();
         } catch (err) {
-            setError('Failed to sign in with Google. Please try again.');
+            const detail = getErrorMessage(err);
+            setError(detail ? `Failed to sign in with Google: ${detail}` : 'Failed to sign in with Google. Please try again.');
             setLoading(false);
         }
     };

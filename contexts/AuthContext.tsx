@@ -102,7 +102,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const signInWithGoogle = async (): Promise<void> => {
-        await signInWithRedirect({ provider: 'Google' });
+        try {
+            await signInWithRedirect({ provider: 'Google' });
+        } catch (err) {
+            // A stale/half-broken session in browser storage makes Amplify
+            // throw "already authenticated" — clear it and retry once so
+            // users aren't stuck behind a generic error.
+            if (err instanceof Error && err.name === 'UserAlreadyAuthenticatedException') {
+                await amplifySignOut();
+                await signInWithRedirect({ provider: 'Google' });
+                return;
+            }
+            throw err;
+        }
     };
 
     const signInWithEmail = async (email: string, password: string): Promise<void> => {
