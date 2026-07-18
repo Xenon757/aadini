@@ -30,6 +30,8 @@ interface AuthContextType {
     loading: boolean;
     pendingAuthMode: 'signin' | 'signup' | null;
     pendingConfirmation: { email: string } | null;
+    authError: string | null;
+    clearAuthError: () => void;
     signInWithGoogle: () => Promise<void>;
     signInWithEmail: (email: string, password: string) => Promise<void>;
     signUpWithEmail: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
@@ -68,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
     const [pendingAuthMode, setPendingAuthMode] = useState<'signin' | 'signup' | null>(null);
     const [pendingConfirmation, setPendingConfirmation] = useState<{ email: string } | null>(null);
+    const [authError, setAuthError] = useState<string | null>(null);
 
     useEffect(() => {
         const guestStatus = localStorage.getItem('guestMode');
@@ -95,6 +98,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 case 'signedOut':
                     setUser(null);
                     break;
+                case 'signInWithRedirect_failure': {
+                    // The OAuth return leg failed (e.g. Cognito couldn't
+                    // complete the exchange). Surface it — silently landing
+                    // back on the homepage is indistinguishable from a bug.
+                    const detail = (payload as { data?: { error?: { message?: string } } }).data?.error?.message;
+                    setAuthError(detail || 'Google sign-in could not be completed.');
+                    break;
+                }
             }
         });
 
@@ -220,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <AuthContext.Provider value={{
             user, isGuest, loading, pendingAuthMode, pendingConfirmation,
+            authError, clearAuthError: () => setAuthError(null),
             signInWithGoogle, signInWithEmail, signUpWithEmail, confirmSignUpCode, resendConfirmationCode,
             continueAsGuest, signOut, openAuth, closeAuth,
             requestPasswordReset, confirmPasswordReset, changePassword,

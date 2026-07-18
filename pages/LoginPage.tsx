@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface LoginPageProps {
@@ -12,8 +12,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialMode, onBack }) => {
     const {
         signInWithGoogle, signInWithEmail, signUpWithEmail, confirmSignUpCode, resendConfirmationCode,
         continueAsGuest, isGuest, closeAuth, requestPasswordReset, confirmPasswordReset, pendingConfirmation,
+        authError, clearAuthError,
     } = useAuth();
     const [error, setError] = useState<string | null>(null);
+
+    // Surface OAuth return-leg failures (e.g. the Cognito/Google exchange
+    // failing after the redirect back) that would otherwise be invisible.
+    useEffect(() => {
+        if (authError) {
+            setError(`Google sign-in failed: ${authError}`);
+            clearAuthError();
+        }
+    }, [authError, clearAuthError]);
     const [loading, setLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
     const [view, setView] = useState<ForgotView>('auth');

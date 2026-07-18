@@ -14,7 +14,7 @@ const PayoffPlanPage = lazy(() => import('./pages/PayoffPlanPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 const AppContent: React.FC = () => {
-    const { user, isGuest, loading, pendingAuthMode, continueAsGuest } = useAuth();
+    const { user, isGuest, loading, pendingAuthMode, continueAsGuest, authError } = useAuth();
     const [preAuthMode, setPreAuthMode] = useState<'signin' | 'signup' | null>(null);
 
     // Publicly reachable regardless of auth state (linked from the Plaid
@@ -32,8 +32,10 @@ const AppContent: React.FC = () => {
     }
 
     if (!user && !isGuest) {
-        if (preAuthMode !== null) {
-            return <LoginPage initialMode={preAuthMode} onBack={() => setPreAuthMode(null)} />;
+        // A failed OAuth return should land on the login screen showing the
+        // error, not bounce silently to the marketing page.
+        if (preAuthMode !== null || authError) {
+            return <LoginPage initialMode={preAuthMode ?? 'signin'} onBack={() => setPreAuthMode(null)} />;
         }
         return (
             <LandingPage
