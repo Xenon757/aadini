@@ -17,7 +17,15 @@ import {
 } from 'plaid';
 import { env } from '$amplify/env/plaid-api';
 import type { Schema } from '../../data/resource';
-import { mapLiabilitiesToLoans, mapRecurringToExpenses, MappedLoan, MappedExpense } from './mapping';
+import {
+  mapLiabilitiesToLoans,
+  mapRecurringToExpenses,
+  mapTransactionsToMonthlyHistory,
+  MappedLoan,
+  MappedExpense,
+  MappedMonthlySnapshot,
+} from './mapping';
+import type { Transaction } from 'plaid';
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
 Amplify.configure(resourceConfig, libraryOptions);
@@ -142,6 +150,35 @@ async function exchangePublicToken(sub: string, args: PlaidArgs) {
   return { itemId, institutionName: args.institutionName ?? null };
 }
 
+const YYYY_MM_DD = (d: Date): string => d.toISOString().slice(0, 10);
+
+/**
+ * Pulls every settled transaction in [startDate, endDate], paging through
+ * Plaid's offset-based transactionsGet (max 500 per page).
+ */
+async function fetchTransactions(
+  accessToken: string,
+  startDate: string,
+  endDate: string
+): Promise<Transaction[]> {
+  const all: Transaction[] = [];
+  const count = 500;
+  let offset = 0;
+  // Hard cap on pages to avoid pathological loops (500 * 40 = 20k txns).
+  for (let page = 0; page < 40; page++) {
+    const resp = await plaid.transactionsGet({
+      access_token: accessToken,
+      start_date: startDate,
+      end_date: endDate,
+      options: { count, offset },
+    });
+    all.push(...resp.data.transactions);
+    if (all.length >= resp.data.total_transactions) break;
+    offset = all.length;
+  }
+  return all;
+}
+
 async function syncPlaidData(sub: string, args: PlaidArgs) {
   let tokens = await tokensForUser(sub);
   if (args.itemId) {
@@ -152,12 +189,21 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
   }
   const now = new Date().toISOString();
   if (tokens.length === 0) {
-    return { loans: [], expenses: [], syncedItemIds: [], lastSyncedAt: now };
+    return { loans: [], expenses: [], incomeExpenseHistory: [], syncedItemIds: [], lastSyncedAt: now };
   }
 
   const allLoans: MappedLoan[] = [];
   const allExpenses: MappedExpense[] = [];
+  const allTransactions: Transaction[] = [];
   const syncedItemIds: string[] = [];
+
+  // 12-month window: first day of the month 11 months back through today.
+  const endDateObj = new Date();
+  const startDateObj = new Date(
+    Date.UTC(endDateObj.getUTCFullYear(), endDateObj.getUTCMonth() - 11, 1)
+  );
+  const startDate = YYYY_MM_DD(startDateObj);
+  const endDate = YYYY_MM_DD(endDateObj);
 
   for (const token of tokens) {
     const { data: items } = await dataClient.models.PlaidItem.list({
@@ -180,17 +226,32 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
       if (code !== 'PRODUCT_NOT_READY') throw err;
     }
 
+    try {
+      allTransactions.push(...(await fetchTransactions(token.accessToken, startDate, endDate)));
+    } catch (err: unknown) {
+      // Same not-ready race as recurring: skip history this pass, retry later.
+      const code = (err as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code;
+      if (code !== 'PRODUCT_NOT_READY') throw err;
+    }
+
     if (items[0]) {
       await dataClient.models.PlaidItem.update({ id: items[0].id, lastSyncedAt: now });
     }
     syncedItemIds.push(token.itemId);
   }
 
+  // Aggregate all connected accounts into a single household 12-month history.
+  // Empty when transactions weren't ready — the client keeps its prior history.
+  const incomeExpenseHistory: MappedMonthlySnapshot[] = allTransactions.length
+    ? mapTransactionsToMonthlyHistory(allTransactions, endDateObj)
+    : [];
+
   // Return raw arrays: AWSJSON fields are serialized by AppSync itself;
   // pre-stringifying here double-encodes and the client sees a string.
   return {
     loans: allLoans,
     expenses: allExpenses,
+    incomeExpenseHistory,
     syncedItemIds,
     lastSyncedAt: now,
   };

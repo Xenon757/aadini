@@ -6,6 +6,7 @@
 import type {
   LiabilitiesGetResponse,
   TransactionStream,
+  Transaction,
   AccountBase,
 } from 'plaid';
 
@@ -28,6 +29,13 @@ export interface MappedExpense {
   amount: number;
   plaidItemId: string;
   institutionName?: string;
+}
+
+/** One aggregated month of income vs. expenses (mirrors MonthlyFinanceSnapshot). */
+export interface MappedMonthlySnapshot {
+  month: string; // 'YYYY-MM'
+  income: number;
+  expenses: number;
 }
 
 const accountName = (account: AccountBase | undefined, fallback: string): string => {
@@ -188,4 +196,66 @@ export function mapRecurringToExpenses(
     });
   }
   return expenses;
+}
+
+/**
+ * Transaction categories excluded from the income/expense history: internal
+ * transfers and loan payments would otherwise double-count or distort the
+ * household cash-flow picture (loan payments are already tracked separately).
+ */
+const EXCLUDED_HISTORY_CATEGORIES = new Set([
+  'TRANSFER_IN',
+  'TRANSFER_OUT',
+  'LOAN_PAYMENTS',
+]);
+
+/** The last 12 calendar-month keys ('YYYY-MM'), oldest first, including `now`'s month. */
+export function last12MonthKeys(now: Date = new Date()): string[] {
+  const keys: string[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    keys.push(d.toISOString().slice(0, 7));
+  }
+  return keys;
+}
+
+/**
+ * Aggregates raw Plaid transactions into a rolling 12-month income vs. expense
+ * history. Plaid's sign convention: a positive `amount` is money leaving the
+ * account (an expense) and a negative `amount` is money entering it (income).
+ * INCOME-categorized inflows are summed as income; other outflows as expenses.
+ */
+export function mapTransactionsToMonthlyHistory(
+  transactions: Transaction[],
+  now: Date = new Date()
+): MappedMonthlySnapshot[] {
+  const months = last12MonthKeys(now);
+  const byMonth = new Map<string, { income: number; expenses: number }>();
+  months.forEach((m) => byMonth.set(m, { income: 0, expenses: 0 }));
+
+  for (const txn of transactions) {
+    if (txn.pending) continue;
+    const month = (txn.date ?? '').slice(0, 7);
+    const bucket = byMonth.get(month);
+    if (!bucket) continue; // Outside the 12-month window.
+
+    const primary = txn.personal_finance_category?.primary;
+    if (primary && EXCLUDED_HISTORY_CATEGORIES.has(primary)) continue;
+
+    const amount = txn.amount ?? 0;
+    if (primary === 'INCOME' || amount < 0) {
+      bucket.income += Math.abs(amount);
+    } else if (amount > 0) {
+      bucket.expenses += amount;
+    }
+  }
+
+  return months.map((m) => {
+    const b = byMonth.get(m)!;
+    return {
+      month: m,
+      income: Math.round(b.income * 100) / 100,
+      expenses: Math.round(b.expenses * 100) / 100,
+    };
+  });
 }

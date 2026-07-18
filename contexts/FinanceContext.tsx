@@ -36,6 +36,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             monthly401kContribution: 0,
             annualIraContribution: 0,
             annualItemizedDeductions: 0,
+            incomeExpenseHistory: [],
         };
     }, []);
 
@@ -165,6 +166,34 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, [finances]);
 
     const loading = financesLoading || settingsLoading;
+
+    // Record a rolling 12-month history of net income vs. expenses. The current
+    // calendar month's entry is upserted whenever the underlying totals change,
+    // so the breakdown chart fills in with real data over time.
+    useEffect(() => {
+        if (loading) return;
+        const income = finances.monthlyNetIncome;
+        const expenses = monthlyExpensesTotal;
+        // Don't record an empty (pristine) month.
+        if (income === 0 && expenses === 0) return;
+
+        const monthKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
+        setFinances(prev => {
+            const history = prev.incomeExpenseHistory ?? [];
+            const existing = history.find(h => h.month === monthKey);
+            if (existing && existing.income === income && existing.expenses === expenses) {
+                return prev; // No change — bail out to avoid a re-render loop.
+            }
+            const updated = [
+                ...history.filter(h => h.month !== monthKey),
+                { month: monthKey, income, expenses },
+            ]
+                .sort((a, b) => a.month.localeCompare(b.month))
+                .slice(-12);
+            return { ...prev, incomeExpenseHistory: updated };
+        });
+    }, [finances.monthlyNetIncome, monthlyExpensesTotal, loading, setFinances]);
 
     const value = {
         finances,

@@ -37,6 +37,13 @@ export enum RiskProfile {
     High = 'High',
 }
 
+/** A recorded monthly total of net income and expenses, keyed by 'YYYY-MM'. */
+export interface MonthlyFinanceSnapshot {
+    month: string; // 'YYYY-MM'
+    income: number;
+    expenses: number;
+}
+
 export interface Finances {
     incomeType: 'gross' | 'net';
     monthlyGrossIncome: number;
@@ -48,6 +55,8 @@ export interface Finances {
     annualItemizedDeductions: number;
     expenses: Expense[];
     loans: Loan[];
+    /** Rolling history of the last 12 months of income vs. expenses. */
+    incomeExpenseHistory?: MonthlyFinanceSnapshot[];
 }
 
 export interface Settings {

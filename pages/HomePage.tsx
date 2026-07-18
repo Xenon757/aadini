@@ -4,6 +4,7 @@ import { useFinance } from '../contexts/FinanceContext';
 import { DTI_THRESHOLDS } from '../constants';
 import { PencilIcon, ArrowRightIcon, PlusCircleIcon, ExclamationTriangleIcon, InformationCircleSolidIcon } from '../components/Icons';
 import { calculateAvalanchePayoff } from '../services/loanCalculator';
+import IncomeExpensesChart from '../components/IncomeExpensesChart';
 
 const HomePage: React.FC = () => {
     const navigate = useNavigate();
@@ -104,9 +105,11 @@ const HomePage: React.FC = () => {
                 </div>
             )}
 
+            <div className="mb-8">
+                <IncomeExpensesChart history={finances.incomeExpenseHistory ?? []} />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <DashboardCard title="Monthly Net Income" value={formatCurrency(finances.monthlyNetIncome)} onEdit={() => navigate('/finances')} />
-                <DashboardCard title="Monthly Expenses" value={formatCurrency(monthlyExpensesTotal)} onEdit={() => navigate('/finances')} />
                 <DashboardCard title="Monthly Debt Payments" value={formatCurrency(monthlyDebtPayments)} onView={() => navigate('/payoff-plan')} />
                 <DashboardCard title="Est. Payoff Time" value={formatMonthsToYears(payoffProjection.baselineTimeline)} onView={() => navigate('/payoff-plan')} />
                 <DashboardCard title="Projected Savings" value={formatCurrency(payoffProjection.interestSaved)} onView={() => navigate('/payoff-plan')} />

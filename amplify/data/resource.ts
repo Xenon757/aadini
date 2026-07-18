@@ -70,6 +70,8 @@ const schema = a.schema({
   PlaidSyncResult: a.customType({
     loans: a.json().required(),
     expenses: a.json().required(),
+    // Rolling 12-month [{ month, income, expenses }] aggregated from transactions.
+    incomeExpenseHistory: a.json(),
     syncedItemIds: a.string().array(),
     lastSyncedAt: a.datetime(),
   }),

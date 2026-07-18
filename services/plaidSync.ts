@@ -1,8 +1,9 @@
-import { Finances, Loan, Expense } from '../types';
+import { Finances, Loan, Expense, MonthlyFinanceSnapshot } from '../types';
 
 export interface PlaidImport {
     loans: Loan[];
     expenses: Expense[];
+    incomeExpenseHistory: MonthlyFinanceSnapshot[];
 }
 
 /**
@@ -56,7 +57,15 @@ export function mergePlaidData(current: Finances, imported: PlaidImport): Financ
     });
     mergedExpenses.push(...importedExpensesById.values());
 
-    return { ...current, loans: mergedLoans, expenses: mergedExpenses };
+    // Plaid's transaction-derived history is authoritative for the 12 months it
+    // covers, so replace wholesale when present; otherwise keep what we have
+    // (e.g. transactions weren't ready yet, or a manual-only user's snapshots).
+    const incomeExpenseHistory =
+        imported.incomeExpenseHistory.length > 0
+            ? imported.incomeExpenseHistory
+            : current.incomeExpenseHistory;
+
+    return { ...current, loans: mergedLoans, expenses: mergedExpenses, incomeExpenseHistory };
 }
 
 /**
@@ -87,7 +96,7 @@ export function unlinkPlaidItem(current: Finances, itemId: string): Finances {
  * JSON strings depending on how many serialization layers applied —
  * unwrap string layers until we hit a non-string.
  */
-export function parseSyncResult(result: { loans?: unknown; expenses?: unknown } | null | undefined): PlaidImport {
+export function parseSyncResult(result: { loans?: unknown; expenses?: unknown; incomeExpenseHistory?: unknown } | null | undefined): PlaidImport {
     const parse = <T,>(value: unknown): T[] => {
         let v = value;
         for (let depth = 0; depth < 3 && typeof v === 'string'; depth++) {
@@ -102,5 +111,6 @@ export function parseSyncResult(result: { loans?: unknown; expenses?: unknown } 
     return {
         loans: parse<Loan>(result?.loans),
         expenses: parse<Expense>(result?.expenses),
+        incomeExpenseHistory: parse<MonthlyFinanceSnapshot>(result?.incomeExpenseHistory),
     };
 }
