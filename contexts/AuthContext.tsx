@@ -73,15 +73,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [authError, setAuthError] = useState<string | null>(null);
 
     useEffect(() => {
-        const guestStatus = localStorage.getItem('guestMode');
-        if (guestStatus === 'true') {
-            setIsGuest(true);
-            setLoading(false);
-            return;
-        }
-
+        // A real signed-in session always outranks the guest flag: a guest
+        // who completes Google/email sign-in must land signed in, not be
+        // short-circuited back into guest mode by the leftover flag.
+        // (guest_finances/guest_settings stay untouched here so the data
+        // layer's import prompt can still offer to migrate them.)
+        const wasGuest = localStorage.getItem('guestMode') === 'true';
         loadCurrentUser().then(u => {
-            setUser(u);
+            if (u) {
+                localStorage.removeItem('guestMode');
+                setIsGuest(false);
+                setUser(u);
+            } else if (wasGuest) {
+                setIsGuest(true);
+            }
             setLoading(false);
         });
 
