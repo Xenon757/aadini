@@ -21,6 +21,7 @@ import {
   mapLiabilitiesToLoans,
   mapRecurringToExpenses,
   mapTransactionsToMonthlyHistory,
+  detectRecurringExpenses,
   MappedLoan,
   MappedExpense,
   MappedMonthlySnapshot,
@@ -228,24 +229,37 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
       }
     }
 
+    // Prefer Plaid's ML-powered recurring streams; fall back to our own
+    // cadence detection when the endpoint is gated (INVALID_PRODUCT — e.g.
+    // the Trial plan) or transactions aren't ready yet.
+    let recurringUnavailable = false;
     try {
       const recurring = await plaid.transactionsRecurringGet({ access_token: token.accessToken });
       allExpenses.push(
         ...mapRecurringToExpenses(recurring.data.outflow_streams, token.itemId, institutionName)
       );
     } catch (err: unknown) {
-      // PRODUCT_NOT_READY: initial transaction pull still running right after
-      // connect. Return loans now; the UI's Refresh button retries expenses.
+      const code = (err as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code;
+      if (!['PRODUCT_NOT_READY', 'INVALID_PRODUCT', 'ADDITIONAL_CONSENT_REQUIRED'].includes(code ?? '')) {
+        throw err;
+      }
+      recurringUnavailable = true;
+    }
+
+    let itemTransactions: Transaction[] = [];
+    try {
+      itemTransactions = await fetchTransactions(token.accessToken, startDate, endDate);
+      allTransactions.push(...itemTransactions);
+    } catch (err: unknown) {
+      // Not-ready race right after connect: skip history this pass, retry later.
       const code = (err as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code;
       if (code !== 'PRODUCT_NOT_READY') throw err;
     }
 
-    try {
-      allTransactions.push(...(await fetchTransactions(token.accessToken, startDate, endDate)));
-    } catch (err: unknown) {
-      // Same not-ready race as recurring: skip history this pass, retry later.
-      const code = (err as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code;
-      if (code !== 'PRODUCT_NOT_READY') throw err;
+    if (recurringUnavailable && itemTransactions.length > 0) {
+      allExpenses.push(
+        ...detectRecurringExpenses(itemTransactions, token.itemId, institutionName)
+      );
     }
 
     if (items[0]) {

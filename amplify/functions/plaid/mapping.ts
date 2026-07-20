@@ -259,3 +259,78 @@ export function mapTransactionsToMonthlyHistory(
     };
   });
 }
+
+const median = (values: number[]): number => {
+  const sorted = values.slice().sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+const DAY_MS = 24 * 3600 * 1000;
+
+/**
+ * Fallback subscription detection from raw transactions, used when Plaid's
+ * Recurring Transactions endpoint is unavailable (gated add-on on some
+ * plans). Conservative heuristic: same merchant, >= 3 occurrences, a steady
+ * weekly/biweekly/monthly cadence, consistent amounts, still active within
+ * the last 45 days. Amounts are monthly-ized like the Plaid-stream path.
+ */
+export function detectRecurringExpenses(
+  transactions: Transaction[],
+  itemId: string,
+  institutionName?: string
+): MappedExpense[] {
+  const groups = new Map<string, Transaction[]>();
+  for (const txn of transactions) {
+    if (txn.pending) continue;
+    if ((txn.amount ?? 0) <= 0) continue; // inflows are not expenses
+    const primary = txn.personal_finance_category?.primary;
+    if (primary && (EXCLUDED_PRIMARY_CATEGORIES.has(primary) || primary === 'INCOME')) continue;
+    const key = (txn.merchant_name || txn.name || '').trim().toLowerCase();
+    if (!key) continue;
+    const list = groups.get(key) ?? [];
+    list.push(txn);
+    groups.set(key, list);
+  }
+
+  const detected: MappedExpense[] = [];
+  for (const [key, txns] of groups) {
+    if (txns.length < 3) continue;
+    const sorted = txns.slice().sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''));
+
+    const lastDate = new Date(sorted[sorted.length - 1].date ?? 0).getTime();
+    if (Date.now() - lastDate > 45 * DAY_MS) continue; // no longer active
+
+    const intervals: number[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      intervals.push(
+        (new Date(sorted[i].date ?? 0).getTime() - new Date(sorted[i - 1].date ?? 0).getTime()) / DAY_MS
+      );
+    }
+    const cadence = median(intervals);
+    let monthlyFactor: number | null = null;
+    if (cadence >= 5.5 && cadence <= 8.5) monthlyFactor = 52 / 12;
+    else if (cadence >= 12 && cadence <= 16.5) monthlyFactor = 26 / 12;
+    else if (cadence >= 26 && cadence <= 35) monthlyFactor = 1;
+    if (monthlyFactor === null) continue; // irregular — not a subscription
+
+    const amounts = sorted.map((t) => t.amount ?? 0);
+    const typicalAmount = median(amounts);
+    if (typicalAmount < 2) continue;
+    const consistent =
+      amounts.filter((a) => Math.abs(a - typicalAmount) <= Math.max(2, typicalAmount * 0.3)).length /
+      amounts.length;
+    if (consistent < 0.7) continue; // amounts vary too much (groceries, gas...)
+
+    const slug = key.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'merchant';
+    const latest = sorted[sorted.length - 1];
+    detected.push({
+      id: `plaid-recurring-${itemId}-${slug}`,
+      name: latest.merchant_name || latest.name || 'Recurring payment',
+      amount: Math.round(typicalAmount * monthlyFactor * 100) / 100,
+      plaidItemId: itemId,
+      institutionName,
+    });
+  }
+  return detected;
+}
