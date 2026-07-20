@@ -216,8 +216,17 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
     });
     const institutionName = items[0]?.institutionName ?? undefined;
 
-    const liabilities = await plaid.liabilitiesGet({ access_token: token.accessToken });
-    allLoans.push(...mapLiabilitiesToLoans(liabilities.data, token.itemId, institutionName));
+    try {
+      const liabilities = await plaid.liabilitiesGet({ access_token: token.accessToken });
+      allLoans.push(...mapLiabilitiesToLoans(liabilities.data, token.itemId, institutionName));
+    } catch (err: unknown) {
+      // An item with no loan accounts (checking/savings-only logins) is a
+      // normal case, not a failure — transactions still sync below.
+      const code = (err as { response?: { data?: { error_code?: string } } })?.response?.data?.error_code;
+      if (!['NO_LIABILITY_ACCOUNTS', 'PRODUCTS_NOT_SUPPORTED', 'PRODUCT_NOT_READY'].includes(code ?? '')) {
+        throw err;
+      }
+    }
 
     try {
       const recurring = await plaid.transactionsRecurringGet({ access_token: token.accessToken });
