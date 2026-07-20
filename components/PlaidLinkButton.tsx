@@ -91,7 +91,19 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
         // Required to resume Link after the bank's OAuth login round-trip.
         receivedRedirectUri: oauthResume ? window.location.href : undefined,
         onSuccess,
-        onExit: finishFlow,
+        onExit: (exitError) => {
+            // Link closing itself carries a reason (OAuth bank not yet
+            // enabled, institution down, user cancelled...) — show it
+            // rather than vanishing silently.
+            if (exitError) {
+                setError(
+                    exitError.display_message ||
+                    exitError.error_message ||
+                    `Connection closed (${exitError.error_code ?? 'unknown reason'})`
+                );
+            }
+            finishFlow();
+        },
     });
 
     // Resume Link automatically when returning from a bank OAuth redirect.
