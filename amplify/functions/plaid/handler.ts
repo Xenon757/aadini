@@ -74,7 +74,11 @@ interface PlaidEvent {
   typeName?: string;
   info?: { fieldName?: string };
   arguments: PlaidArgs;
-  identity?: { sub?: string } | null;
+  identity?: {
+    sub?: string;
+    username?: string;
+    claims?: Record<string, unknown>;
+  } | null;
 }
 
 interface TokenRecord {
@@ -89,6 +93,22 @@ const callerSub = (event: PlaidEvent): string => {
     throw new Error('Unauthorized: no Cognito identity on request');
   }
   return sub;
+};
+
+/**
+ * The value Amplify's owner-auth compares against for the PlaidItem model:
+ * its rule uses identityClaim "cognito:username". For a Cognito user that's
+ * `event.identity.username` (for Google-federated users, "google_<id>").
+ * Writing the sub here instead makes owners unable to read their own rows.
+ */
+const callerOwner = (event: PlaidEvent): string => {
+  const username =
+    event.identity?.username ??
+    (event.identity?.claims?.['cognito:username'] as string | undefined);
+  if (!username) {
+    throw new Error('Unauthorized: no cognito:username on request');
+  }
+  return username;
 };
 
 /** All Plaid token rows for this user (server-side scoping by userSub). */
@@ -128,7 +148,7 @@ async function createLinkToken(sub: string, args: PlaidArgs) {
   };
 }
 
-async function exchangePublicToken(sub: string, args: PlaidArgs) {
+async function exchangePublicToken(sub: string, owner: string, args: PlaidArgs) {
   if (!args.publicToken) throw new Error('publicToken is required');
   const exchange = await plaid.itemPublicTokenExchange({ public_token: args.publicToken });
   const itemId = exchange.data.item_id;
@@ -147,7 +167,9 @@ async function exchangePublicToken(sub: string, args: PlaidArgs) {
     institutionName: args.institutionName,
     connectedAt: new Date().toISOString(),
     status: 'active',
-    owner: sub,
+    // Must be the cognito:username (owner-auth identityClaim), not the sub,
+    // or the user cannot read their own PlaidItem via PlaidItem.list().
+    owner,
   });
   if (itemErrors?.length) {
     throw new Error(`Failed to store item metadata: ${itemErrors[0].message}`);
@@ -324,7 +346,7 @@ export const handler = async (event: PlaidEvent) => {
       case 'createPlaidLinkToken':
         return await createLinkToken(sub, event.arguments);
       case 'exchangePlaidPublicToken':
-        return await exchangePublicToken(sub, event.arguments);
+        return await exchangePublicToken(sub, callerOwner(event), event.arguments);
       case 'syncPlaidData':
         return await syncPlaidData(sub, event.arguments);
       case 'disconnectPlaidItem':
