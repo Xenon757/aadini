@@ -111,7 +111,12 @@ async function createLinkToken(sub: string, args: PlaidArgs) {
   const response = await plaid.linkTokenCreate({
     user: { client_user_id: sub },
     client_name: 'PayoffPal',
-    products: [Products.Liabilities, Products.Transactions],
+    // Transactions is the only hard requirement; Liabilities activates
+    // when the user's accounts support it. Requiring Liabilities outright
+    // blocks users whose bank login has no loan accounts (e.g. checking
+    // only) from connecting at all.
+    products: [Products.Transactions],
+    required_if_supported_products: [Products.Liabilities],
     country_codes: [CountryCode.Us],
     language: 'en',
     ...(redirectUri ? { redirect_uri: redirectUri } : {}),
