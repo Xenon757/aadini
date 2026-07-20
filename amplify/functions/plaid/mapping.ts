@@ -199,15 +199,35 @@ export function mapRecurringToExpenses(
 }
 
 /**
- * Transaction categories excluded from the income/expense history: internal
- * transfers and loan payments would otherwise double-count or distort the
- * household cash-flow picture (loan payments are already tracked separately).
+ * Movements between the user's own accounts (checking->savings, investment
+ * sweeps) — excluded from cash-flow numbers. P2P payments (Zelle, Venmo)
+ * are deliberately NOT here: for most households they are real spending
+ * (rent, splitting bills) or real money received.
  */
-const EXCLUDED_HISTORY_CATEGORIES = new Set([
-  'TRANSFER_IN',
-  'TRANSFER_OUT',
-  'LOAN_PAYMENTS',
+const INTERNAL_TRANSFER_DETAILED = new Set([
+  'TRANSFER_IN_ACCOUNT_TRANSFER',
+  'TRANSFER_IN_SAVINGS',
+  'TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS',
+  'TRANSFER_OUT_ACCOUNT_TRANSFER',
+  'TRANSFER_OUT_SAVINGS',
+  'TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS',
 ]);
+
+/**
+ * True when a transaction should not count toward income/expense numbers:
+ * loan payments (tracked separately as debt) and own-account transfers.
+ */
+const isExcludedFromCashFlow = (txn: Transaction): boolean => {
+  const primary = txn.personal_finance_category?.primary;
+  if (primary === 'LOAN_PAYMENTS') return true;
+  if (primary === 'TRANSFER_IN' || primary === 'TRANSFER_OUT') {
+    const detailed = txn.personal_finance_category?.detailed;
+    // Unknown transfer subtype: err toward excluding (could be own-account).
+    if (!detailed) return true;
+    return INTERNAL_TRANSFER_DETAILED.has(detailed);
+  }
+  return false;
+};
 
 /** The last 12 calendar-month keys ('YYYY-MM'), oldest first, including `now`'s month. */
 export function last12MonthKeys(now: Date = new Date()): string[] {
@@ -239,9 +259,9 @@ export function mapTransactionsToMonthlyHistory(
     const bucket = byMonth.get(month);
     if (!bucket) continue; // Outside the 12-month window.
 
-    const primary = txn.personal_finance_category?.primary;
-    if (primary && EXCLUDED_HISTORY_CATEGORIES.has(primary)) continue;
+    if (isExcludedFromCashFlow(txn)) continue;
 
+    const primary = txn.personal_finance_category?.primary;
     const amount = txn.amount ?? 0;
     if (primary === 'INCOME' || amount < 0) {
       bucket.income += Math.abs(amount);
@@ -284,8 +304,8 @@ export function detectRecurringExpenses(
   for (const txn of transactions) {
     if (txn.pending) continue;
     if ((txn.amount ?? 0) <= 0) continue; // inflows are not expenses
-    const primary = txn.personal_finance_category?.primary;
-    if (primary && (EXCLUDED_PRIMARY_CATEGORIES.has(primary) || primary === 'INCOME')) continue;
+    if (isExcludedFromCashFlow(txn)) continue; // loan payments, own-account moves
+    if (txn.personal_finance_category?.primary === 'INCOME') continue;
     const key = (txn.merchant_name || txn.name || '').trim().toLowerCase();
     if (!key) continue;
     const list = groups.get(key) ?? [];
