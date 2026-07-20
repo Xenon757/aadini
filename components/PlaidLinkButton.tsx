@@ -68,14 +68,28 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
                 if (exchangeErrors?.length || !exchange) {
                     throw new Error(exchangeErrors?.[0]?.message ?? 'Bank connection failed');
                 }
-                const { data: sync, errors: syncErrors } = await client.mutations.syncPlaidData({
-                    itemId: exchange.itemId,
-                });
-                if (syncErrors?.length) {
-                    throw new Error(syncErrors[0].message);
+                // Plaid extracts transaction history asynchronously after a
+                // new connection (recent days first, older months shortly
+                // after) — retry the sync a few times so data appears
+                // without the user having to mash Refresh.
+                const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+                const delaysMs = [0, 8000, 15000, 25000, 35000];
+                for (const delay of delaysMs) {
+                    if (delay) await sleep(delay);
+                    const { data: sync, errors: syncErrors } = await client.mutations.syncPlaidData({
+                        itemId: exchange.itemId,
+                    });
+                    if (syncErrors?.length) {
+                        throw new Error(syncErrors[0].message);
+                    }
+                    const imported = parseSyncResult(sync);
+                    setFinances(prev => mergePlaidData(prev, imported));
+                    const gotData =
+                        imported.loans.length > 0 ||
+                        imported.expenses.length > 0 ||
+                        imported.incomeExpenseHistory.some(m => m.income > 0 || m.expenses > 0);
+                    if (gotData) break;
                 }
-                const imported = parseSyncResult(sync);
-                setFinances(prev => mergePlaidData(prev, imported));
                 onImported?.();
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Import failed');
