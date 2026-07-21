@@ -8,11 +8,35 @@ type ModelName = 'Finances' | 'Settings';
 // individually, which doesn't unify cleanly with a runtime-selected model
 // name + generic T. This narrow cast isolates that at the one boundary where
 // it's unavoidable (mirrors the old hook's own `data.data as T` cast).
+type GqlErrors = Array<{ message: string }> | undefined;
 type GenericModelClient = {
-  list: (args?: unknown) => Promise<{ data: Array<Record<string, unknown>> }>;
-  create: (input: Record<string, unknown>) => Promise<{ data: Record<string, unknown> | null }>;
-  update: (input: Record<string, unknown>) => Promise<{ data: Record<string, unknown> | null }>;
-  delete: (input: { id: string }) => Promise<{ data: Record<string, unknown> | null }>;
+  list: (args?: unknown) => Promise<{ data: Array<Record<string, unknown>>; errors?: GqlErrors }>;
+  create: (input: Record<string, unknown>) => Promise<{ data: Record<string, unknown> | null; errors?: GqlErrors }>;
+  update: (input: Record<string, unknown>) => Promise<{ data: Record<string, unknown> | null; errors?: GqlErrors }>;
+  delete: (input: { id: string }) => Promise<{ data: Record<string, unknown> | null; errors?: GqlErrors }>;
+};
+
+/**
+ * Amplify Data returns write failures in an `errors` array rather than
+ * throwing, so ignoring it makes a rejected save look like success. Surface
+ * any errors both to the console and to a global banner listener.
+ */
+const reportGqlErrors = (op: string, model: string, errors: GqlErrors): boolean => {
+  if (!errors?.length) return false;
+  const message = errors.map((e) => e.message).join('; ');
+  console.error(`${op} ${model} failed:`, message);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('payoffpal:save-error', { detail: `${model} ${op} failed: ${message}` })
+    );
+  }
+  return true;
+};
+
+/** Strips server-managed and meta fields the model's input type won't accept. */
+const stripMeta = (value: Record<string, unknown>): Record<string, unknown> => {
+  const { id, owner, createdAt, updatedAt, __typename, ...clean } = value;
+  return clean;
 };
 
 function useAmplifyStorage<T extends object>(
@@ -46,12 +70,12 @@ function useAmplifyStorage<T extends object>(
 
   const loadFromDatabase = useCallback(async (userId: string) => {
     try {
-      const { data: records } = await model.list();
+      const { data: records, errors } = await model.list();
+      reportGqlErrors('load', modelName, errors);
       const record = records[0];
       if (record) {
         recordIdRef.current = record.id as string;
-        const { id, owner, createdAt, updatedAt, ...rest } = record;
-        const value = rest as unknown as T;
+        const value = stripMeta(record) as unknown as T;
         setStoredValue(value);
         window.localStorage.setItem(getStorageKey(userId, false), JSON.stringify(value));
       } else {
@@ -93,11 +117,13 @@ function useAmplifyStorage<T extends object>(
     if (!user || isGuest) return;
 
     try {
-      const valueAsRecord = value as unknown as Record<string, unknown>;
+      const clean = stripMeta(value as unknown as Record<string, unknown>);
       if (recordIdRef.current) {
-        await model.update({ id: recordIdRef.current, ...valueAsRecord });
+        const { errors } = await model.update({ id: recordIdRef.current, ...clean });
+        reportGqlErrors('update', modelName, errors);
       } else {
-        const { data: created } = await model.create({ ...valueAsRecord });
+        const { data: created, errors } = await model.create({ ...clean });
+        if (reportGqlErrors('create', modelName, errors)) return;
         if (created) recordIdRef.current = created.id as string;
       }
     } catch (error) {

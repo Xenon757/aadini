@@ -174,9 +174,27 @@ const MainApp: React.FC = () => {
     );
 };
 
+/** Surfaces cloud-save failures (dispatched by useAmplifyStorage) as a banner. */
+const SaveErrorBanner: React.FC = () => {
+    const [message, setMessage] = useState<string | null>(null);
+    React.useEffect(() => {
+        const handler = (e: Event) => setMessage((e as CustomEvent<string>).detail);
+        window.addEventListener('payoffpal:save-error', handler);
+        return () => window.removeEventListener('payoffpal:save-error', handler);
+    }, []);
+    if (!message) return null;
+    return (
+        <div className="fixed top-0 inset-x-0 z-[60] bg-red-900/90 text-red-100 text-sm px-4 py-2 flex items-start justify-between gap-3">
+            <span><strong>Couldn't save to the cloud:</strong> {message}</span>
+            <button onClick={() => setMessage(null)} className="text-red-200 hover:text-white font-bold px-2">×</button>
+        </div>
+    );
+};
+
 const App: React.FC = () => {
     return (
         <AuthProvider>
+            <SaveErrorBanner />
             <AppContent />
         </AuthProvider>
     );
