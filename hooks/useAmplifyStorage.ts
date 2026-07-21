@@ -59,10 +59,33 @@ const sanitizeJson = <V>(v: V): V => {
   return v;
 };
 
+/** Serializes designated a.json()/AWSJSON fields to strings for writes. */
+const encodeJsonFields = (value: Record<string, unknown>, jsonFields: string[]): Record<string, unknown> => {
+  if (!jsonFields.length) return value;
+  const out = { ...value };
+  for (const f of jsonFields) {
+    if (f in out && typeof out[f] !== 'string') out[f] = JSON.stringify(out[f]);
+  }
+  return out;
+};
+
+/** Parses designated a.json() fields back to objects on read (guards non-strings). */
+const decodeJsonFields = (record: Record<string, unknown>, jsonFields: string[]): Record<string, unknown> => {
+  if (!jsonFields.length) return record;
+  const out = { ...record };
+  for (const f of jsonFields) {
+    if (typeof out[f] === 'string') {
+      try { out[f] = JSON.parse(out[f] as string); } catch { /* leave as-is */ }
+    }
+  }
+  return out;
+};
+
 function useAmplifyStorage<T extends object>(
   key: string,
   initialValue: T,
-  modelName: ModelName
+  modelName: ModelName,
+  jsonFields: string[] = []
 ): [T, React.Dispatch<React.SetStateAction<T>>, boolean, () => Promise<void>] {
   const { user, isGuest } = useAuth();
   const model = client.models[modelName] as unknown as GenericModelClient;
@@ -95,7 +118,7 @@ function useAmplifyStorage<T extends object>(
       const record = records[0];
       if (record) {
         recordIdRef.current = record.id as string;
-        const value = stripMeta(record) as unknown as T;
+        const value = decodeJsonFields(stripMeta(record), jsonFields) as unknown as T;
         setStoredValue(value);
         window.localStorage.setItem(getStorageKey(userId, false), JSON.stringify(value));
       } else {
@@ -137,7 +160,10 @@ function useAmplifyStorage<T extends object>(
     if (!user || isGuest) return;
 
     try {
-      const clean = sanitizeJson(stripMeta(value as unknown as Record<string, unknown>));
+      const clean = encodeJsonFields(
+        sanitizeJson(stripMeta(value as unknown as Record<string, unknown>)),
+        jsonFields
+      );
       if (recordIdRef.current) {
         const { errors } = await model.update({ id: recordIdRef.current, ...clean });
         reportGqlErrors('update', modelName, errors);

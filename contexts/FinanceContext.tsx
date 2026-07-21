@@ -44,7 +44,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         riskProfile: RiskProfile.Average,
     }), []);
 
-    const [finances, setFinances, financesLoading, deleteRemoteFinances] = useAmplifyStorage<Finances>('finances', initialFinances, 'Finances');
+    const [finances, setFinances, financesLoading, deleteRemoteFinances] = useAmplifyStorage<Finances>('finances', initialFinances, 'Finances', ['expenses', 'loans', 'incomeExpenseHistory']);
     const [settings, setSettings, settingsLoading, deleteRemoteSettings] = useAmplifyStorage<Settings>('settings', initialSettings, 'Settings');
     const { user, isGuest } = useAuth();
 
