@@ -39,6 +39,26 @@ const stripMeta = (value: Record<string, unknown>): Record<string, unknown> => {
   return clean;
 };
 
+/**
+ * Deep-cleans a value into strictly-valid JSON: non-finite numbers
+ * (NaN/Infinity) become 0 and `undefined`s are dropped. AppSync rejects
+ * AWSJSON fields ("has an invalid value") when either sneaks in, which
+ * otherwise silently fails the whole save.
+ */
+const sanitizeJson = <V>(v: V): V => {
+  if (typeof v === 'number') return (Number.isFinite(v) ? v : 0) as V;
+  if (Array.isArray(v)) return v.filter((x) => x !== undefined).map(sanitizeJson) as V;
+  if (v && typeof v === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (val === undefined) continue;
+      out[k] = sanitizeJson(val);
+    }
+    return out as V;
+  }
+  return v;
+};
+
 function useAmplifyStorage<T extends object>(
   key: string,
   initialValue: T,
@@ -117,7 +137,7 @@ function useAmplifyStorage<T extends object>(
     if (!user || isGuest) return;
 
     try {
-      const clean = stripMeta(value as unknown as Record<string, unknown>);
+      const clean = sanitizeJson(stripMeta(value as unknown as Record<string, unknown>));
       if (recordIdRef.current) {
         const { errors } = await model.update({ id: recordIdRef.current, ...clean });
         reportGqlErrors('update', modelName, errors);
