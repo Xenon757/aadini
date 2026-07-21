@@ -296,6 +296,12 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
     ? mapTransactionsToMonthlyHistory(allTransactions, endDateObj)
     : [];
 
+  console.log(
+    `syncPlaidData result: items=${tokens.length} loans=${allLoans.length} ` +
+    `expenses=${allExpenses.length} txns=${allTransactions.length} ` +
+    `historyMonthsWithData=${incomeExpenseHistory.filter(m => m.income > 0 || m.expenses > 0).length}`
+  );
+
   // Return raw arrays: AWSJSON fields are serialized by AppSync itself;
   // pre-stringifying here double-encodes and the client sees a string.
   return {

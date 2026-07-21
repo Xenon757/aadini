@@ -38,6 +38,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
     const { setFinances } = useFinance();
     const [status, setStatus] = useState<Status>('idle');
     const [error, setError] = useState<string | null>(null);
+    const [importHint, setImportHint] = useState<string | null>(null);
     const [linkToken, setLinkToken] = useState<string | null>(null);
     const [oauthResume, setOauthResume] = useState(false);
 
@@ -45,6 +46,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
 
     const finishFlow = useCallback(() => {
         setStatus('idle');
+        setImportHint(null);
         setLinkToken(null);
         setOauthResume(false);
         sessionStorage.removeItem(OAUTH_TOKEN_KEY);
@@ -68,14 +70,14 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
                 if (exchangeErrors?.length || !exchange) {
                     throw new Error(exchangeErrors?.[0]?.message ?? 'Bank connection failed');
                 }
-                // Plaid extracts transaction history asynchronously after a
-                // new connection (recent days first, older months shortly
-                // after) — retry the sync a few times so data appears
-                // without the user having to mash Refresh.
+                // Plaid extracts data asynchronously after a new connection.
+                // Poll frequently so we release the moment anything lands
+                // (rather than waiting out a long fixed gap), for up to ~45s.
                 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-                const delaysMs = [0, 8000, 15000, 25000, 35000];
-                for (const delay of delaysMs) {
-                    if (delay) await sleep(delay);
+                const maxAttempts = 12;
+                const gapMs = 4000;
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    if (attempt > 0) await sleep(gapMs);
                     const { data: sync, errors: syncErrors } = await client.mutations.syncPlaidData({
                         itemId: exchange.itemId,
                     });
@@ -89,6 +91,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
                         imported.expenses.length > 0 ||
                         imported.incomeExpenseHistory.some(m => m.income > 0 || m.expenses > 0);
                     if (gotData) break;
+                    setImportHint('Fetching your data from the bank — this can take up to a minute on a new connection…');
                 }
                 onImported?.();
             } catch (err) {
@@ -185,6 +188,11 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
             >
                 {busy ? busyLabel : (label ?? '🏦 Import from bank')}
             </button>
+            {status === 'importing' && importHint && (
+                <p className="mt-2 text-sm text-dark-text-secondary">
+                    {importHint}
+                </p>
+            )}
             {error && (
                 <p className="mt-2 text-sm text-red-400" role="alert">
                     {error}
