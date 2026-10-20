@@ -255,8 +255,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                 }}
             >
                 <span className="nav-logo flex items-center gap-2 cursor-default">
-                    <img src="/PayoffPal_Logo_Light.png" alt="PayoffPal" className="h-10 w-auto object-contain" />
-                    <span className="text-lg font-bold text-accent tracking-wide">PayoffPal</span>
+                    <img src="/Modulos_Logo_Light.png" alt="Modulos" className="h-10 w-auto object-contain" />
+                    <span className="text-lg font-bold text-accent tracking-wide">Modulos</span>
                 </span>
                 <div className="flex items-center gap-3">
                     <button
@@ -302,7 +302,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                 <div className="relative z-10 max-w-3xl mx-auto mt-8">
                     <div style={heroStyle(0)}>
                         <p className="text-sm font-semibold text-accent uppercase tracking-widest mb-4">
-                            PayoffPal: Your Personal Debt Management Companion
+                            Modulos: Your Personal Debt Management Companion
                         </p>
                     </div>
                     <div style={heroStyle(120)}>
@@ -396,7 +396,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                     </div>
                     <FadeInSection delay={360}>
                         <p className="text-xl text-accent font-semibold">
-                            PayoffPal gives you a clear, data-backed answer in seconds.
+                            Modulos gives you a clear, data-backed answer in seconds.
                         </p>
                     </FadeInSection>
                 </div>
@@ -649,12 +649,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                 </div>
             </section>
 
-            {/* SECTION 6 — WHY PAYOFFPAL IS DIFFERENT */}
+            {/* SECTION 6 — WHY MODULOS IS DIFFERENT */}
             <section className="py-24 px-6 bg-dark-card border-y border-dark-border">
                 <div className="max-w-3xl mx-auto">
                     <FadeInSection>
                         <div className="text-center mb-14">
-                            <h2 className="text-3xl sm:text-4xl font-bold">Why PayoffPal Is Different</h2>
+                            <h2 className="text-3xl sm:text-4xl font-bold">Why Modulos Is Different</h2>
                         </div>
                     </FadeInSection>
                     <FadeInSection delay={100}>
@@ -663,7 +663,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                                 <thead>
                                     <tr className="bg-dark-bg">
                                         <th className="text-left px-6 py-4 text-dark-text-secondary font-semibold w-1/2">Other Apps</th>
-                                        <th className="text-left px-6 py-4 text-accent font-semibold w-1/2">PayoffPal</th>
+                                        <th className="text-left px-6 py-4 text-accent font-semibold w-1/2">Modulos</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -718,10 +718,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                             onClick={onSignUp}
                             className="px-10 py-5 bg-accent text-dark-bg font-bold text-xl rounded-xl shadow-xl shadow-accent/20 mt-4 cta-primary"
                         >
-                            Try PayoffPal Now — Free
+                            Try Modulos Now — Free
                         </button>
                         <div className="flex justify-center mt-10">
-                            <img src="/PayoffPal_Logo_Light.png" alt="PayoffPal" className="w-64 h-auto object-contain opacity-90" />
+                            <img src="/Modulos_Logo_Light.png" alt="Modulos" className="w-64 h-auto object-contain opacity-90" />
                         </div>
                         <p className="text-sm text-dark-text-secondary mt-6">No credit card required. Bank connection optional. Just clarity.</p>
                     </div>
@@ -733,7 +733,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                 <div className="max-w-5xl mx-auto">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-6">
                         <div>
-                            <p className="text-lg font-bold text-accent">PayoffPal</p>
+                            <p className="text-lg font-bold text-accent">Modulos</p>
                             <p className="text-sm text-dark-text-secondary">Your Personal Debt Management Companion</p>
                         </div>
                         <div className="flex items-center gap-6 text-sm text-dark-text-secondary">

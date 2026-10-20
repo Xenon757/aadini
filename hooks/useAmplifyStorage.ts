@@ -27,7 +27,7 @@ const reportGqlErrors = (op: string, model: string, errors: GqlErrors): boolean 
   console.error(`${op} ${model} failed:`, message);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(
-      new CustomEvent('payoffpal:save-error', { detail: `${model} ${op} failed: ${message}` })
+      new CustomEvent('modulos:save-error', { detail: `${model} ${op} failed: ${message}` })
     );
   }
   return true;

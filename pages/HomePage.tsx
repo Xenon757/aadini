@@ -74,7 +74,7 @@ const HomePage: React.FC = () => {
     return (
         <div className="p-6 sm:p-8 max-w-7xl mx-auto">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold text-accent">PayoffPal Dashboard</h1>
+                <h1 className="text-3xl font-bold text-accent">Modulos Dashboard</h1>
                 <p className="text-dark-text-secondary">Your financial overview at a glance.</p>
             </header>
 
@@ -82,7 +82,7 @@ const HomePage: React.FC = () => {
                 <div className="bg-dark-card border border-dark-border rounded-lg p-5 mb-8 flex items-start space-x-3">
                     <InformationCircleSolidIcon className="h-5 w-5 text-accent flex-shrink-0 mt-0.5"/>
                     <div>
-                        <h3 className="font-semibold">Welcome to PayoffPal!</h3>
+                        <h3 className="font-semibold">Welcome to Modulos!</h3>
                         <p className="text-sm text-dark-text-secondary">Start by adding your income and existing debts on the Finances page to see your dashboard.</p>
                     </div>
                 </div>

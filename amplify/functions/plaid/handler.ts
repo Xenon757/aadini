@@ -131,7 +131,7 @@ async function createLinkToken(sub: string, args: PlaidArgs) {
       : undefined;
   const response = await plaid.linkTokenCreate({
     user: { client_user_id: sub },
-    client_name: 'PayoffPal',
+    client_name: 'Modulos',
     // Transactions is the only hard requirement; Liabilities activates
     // when the user's accounts support it. Requiring Liabilities outright
     // blocks users whose bank login has no loan accounts (e.g. checking
