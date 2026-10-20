@@ -1,4 +1,4 @@
-# PayoffPal - Personal Finance & Debt Payoff Planner
+# Modulos - Personal Finance & Debt Payoff Planner
 
 A web application to help you manage your finances and create a debt payoff plan using the avalanche method.
 
@@ -56,7 +56,7 @@ The built files will be in the `dist` directory.
 
 ### Avalanche Method
 
-PayoffPal uses the avalanche method for debt payoff:
+Modulos uses the avalanche method for debt payoff:
 1. Pay minimums on all loans
 2. Apply extra payment to the highest APR loan
 3. When a loan is paid off, roll that payment to the next highest APR loan
@@ -64,7 +64,7 @@ PayoffPal uses the avalanche method for debt payoff:
 
 ### Tax Calculations
 
-When using Gross Income mode, PayoffPal calculates your net income by considering:
+When using Gross Income mode, Modulos calculates your net income by considering:
 - Federal income tax brackets
 - State income tax (for applicable states)
 - Local/city taxes (for applicable cities)

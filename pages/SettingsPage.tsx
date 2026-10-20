@@ -96,7 +96,7 @@ const SettingsPage: React.FC = () => {
         <div className="p-6 sm:p-8 max-w-2xl mx-auto">
             <header className="mb-8">
                 <h1 className="text-3xl font-bold text-accent">Settings</h1>
-                <p className="text-dark-text-secondary">Customize your PayoffPal experience.</p>
+                <p className="text-dark-text-secondary">Customize your Modulos experience.</p>
             </header>
 
             <div className="space-y-8">
@@ -243,12 +243,12 @@ const SettingsPage: React.FC = () => {
                 </div>
 
                 <div className="bg-dark-card p-6 rounded-lg border border-dark-border space-y-4">
-                    <h2 className="text-xl font-semibold text-dark-text">About PayoffPal</h2>
+                    <h2 className="text-xl font-semibold text-dark-text">About Modulos</h2>
                     <p className="text-dark-text-secondary">
-                        PayoffPal determines whether a new loan is affordable and financially sound based on your income, expenses, and current debts. It also helps you pay off existing loans faster using the Avalanche Method—prioritizing high-interest debt first to minimize total interest paid.
+                        Modulos determines whether a new loan is affordable and financially sound based on your income, expenses, and current debts. It also helps you pay off existing loans faster using the Avalanche Method—prioritizing high-interest debt first to minimize total interest paid.
                     </p>
                     <p className="text-dark-text-secondary">
-                        Whether you're evaluating a new loan or managing multiple debts, PayoffPal provides clear, actionable insights like your debt-to-income ratio, loan affordability rating (Safe, Borderline, or Not Recommended), and personalized payoff timeline.
+                        Whether you're evaluating a new loan or managing multiple debts, Modulos provides clear, actionable insights like your debt-to-income ratio, loan affordability rating (Safe, Borderline, or Not Recommended), and personalized payoff timeline.
                     </p>
                     <a href="/privacy" className="inline-block text-sm text-accent hover:text-accent-hover underline">
                         Privacy Policy

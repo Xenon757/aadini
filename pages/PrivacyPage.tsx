@@ -16,14 +16,14 @@ const PrivacyPage: React.FC = () => (
     <div className="min-h-screen bg-dark-bg text-dark-text">
         <div className="max-w-3xl mx-auto p-6 sm:p-10 space-y-10">
             <header className="space-y-2">
-                <a href="/" className="text-accent hover:text-accent-hover text-sm">&larr; Back to PayoffPal</a>
+                <a href="/" className="text-accent hover:text-accent-hover text-sm">&larr; Back to Modulos</a>
                 <h1 className="text-3xl font-bold text-accent">Privacy Policy</h1>
                 <p className="text-sm text-dark-text-secondary">Effective date: July 17, 2026</p>
             </header>
 
             <Section title="Who we are">
                 <p>
-                    PayoffPal is a personal debt management application that helps you track loans,
+                    Modulos is a personal debt management application that helps you track loans,
                     expenses, and build a debt payoff plan. It is operated by an individual developer.
                     Contact: <a href="mailto:aadibelwal@gmail.com" className="text-accent hover:text-accent-hover">aadibelwal@gmail.com</a>.
                 </p>
@@ -53,7 +53,7 @@ const PrivacyPage: React.FC = () => (
             <Section title="Bank connections and Plaid">
                 <p>
                     Bank connections are powered by Plaid Inc. You authenticate directly with your bank
-                    through Plaid — PayoffPal never sees or stores your bank username or password. Plaid
+                    through Plaid — Modulos never sees or stores your bank username or password. Plaid
                     provides us with access tokens, which are stored server-side in encrypted storage and
                     are never accessible from your browser.
                 </p>

@@ -76,8 +76,8 @@ const AppHeader: React.FC = () => {
                     </button>
                 )}
                 <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    <img src="/PayoffPal_Logo_Light.png" alt="PayoffPal" className="h-10 w-auto object-contain" />
-                    <span className="text-sm font-semibold text-accent tracking-wide">PayoffPal</span>
+                    <img src="/Modulos_Logo_Light.png" alt="Modulos" className="h-10 w-auto object-contain" />
+                    <span className="text-sm font-semibold text-accent tracking-wide">Modulos</span>
                 </Link>
             </div>
             <div className="flex items-center gap-2">
@@ -179,8 +179,8 @@ const SaveErrorBanner: React.FC = () => {
     const [message, setMessage] = useState<string | null>(null);
     React.useEffect(() => {
         const handler = (e: Event) => setMessage((e as CustomEvent<string>).detail);
-        window.addEventListener('payoffpal:save-error', handler);
-        return () => window.removeEventListener('payoffpal:save-error', handler);
+        window.addEventListener('modulos:save-error', handler);
+        return () => window.removeEventListener('modulos:save-error', handler);
     }, []);
     if (!message) return null;
     return (

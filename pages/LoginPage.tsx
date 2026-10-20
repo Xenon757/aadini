@@ -165,7 +165,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialMode, onBack }) => {
                     </div>
                 )}
                 <div className="text-center">
-                    <h1 className="text-4xl font-bold text-dark-text mb-2">PayoffPal</h1>
+                    <h1 className="text-4xl font-bold text-dark-text mb-2">Modulos</h1>
                     <p className="text-dark-text-secondary">Your Personal Debt Management Companion</p>
                 </div>
                 <div className="bg-dark-card rounded-lg p-8 space-y-6 border border-dark-border">
