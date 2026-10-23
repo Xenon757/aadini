@@ -1,0 +1,113 @@
+import { Finances, Expense, Loan, LoanType, MonthlyFinanceSnapshot, RiskProfile, Settings } from '../types';
+
+/**
+ * "Try a Sample" profile: a household that reflects the average American
+ * (about $104K gross income, a fixed-rate mortgage, a car loan, student
+ * loans and a credit card balance).
+ *
+ * Income and expenses are tuned so the app's own figures line up with the
+ * reference profile: $6,200/mo take-home, $622/mo discretionary spending,
+ * and a $415/mo leftover margin after all expenses and loan minimums.
+ */
+
+const MORTGAGE_ID = 'sample-mortgage';
+
+const loans = (): Loan[] => [
+    {
+        id: MORTGAGE_ID,
+        name: 'Primary Mortgage',
+        type: LoanType.Mortgage,
+        balance: 210000,
+        apr: 6.5,
+        term: 30,
+        originalAmount: 230000,
+        monthlyPropertyTax: 292,
+    },
+    {
+        id: 'sample-auto',
+        name: 'Auto Loan',
+        type: LoanType.Auto,
+        balance: 18000,
+        apr: 7.5,
+        term: 5,
+        originalAmount: 22000,
+    },
+    {
+        id: 'sample-credit-card',
+        name: 'Credit Card',
+        type: LoanType.CreditCard,
+        balance: 6000,
+        apr: 22.36,
+        term: 1,
+        originalAmount: 6000,
+        // Revolving debt has no term; model a typical ~2.5% minimum payment.
+        minPaymentOverride: 150,
+    },
+    {
+        id: 'sample-student',
+        name: 'Student Loans',
+        type: LoanType.Student,
+        balance: 11000,
+        apr: 6.52,
+        term: 10,
+        originalAmount: 14000,
+    },
+];
+
+const expenses = (): Expense[] => [
+    // Core living expenses (excluding loan payments, which the app tracks separately)
+    { id: 'property-tax-' + MORTGAGE_ID, name: 'Property Tax', amount: 292 },
+    { id: 'Electricity', name: 'Electricity', amount: 140 },
+    { id: 'Water', name: 'Water', amount: 55 },
+    { id: 'Natural Gas', name: 'Natural Gas', amount: 70 },
+    { id: 'Internet', name: 'Internet', amount: 75 },
+    { id: 'Phone', name: 'Phone', amount: 110 },
+    { id: 'Home Insurance', name: 'Home Insurance', amount: 150 },
+    { id: 'Auto Insurance', name: 'Auto Insurance', amount: 160 },
+    { id: 'Gas', name: 'Gas', amount: 230 },
+    { id: 'Vehicle Maintenance', name: 'Vehicle Maintenance', amount: 90 },
+    { id: 'Groceries', name: 'Groceries', amount: 900 },
+    { id: 'Life Insurance', name: 'Life Insurance', amount: 45 },
+    { id: 'Health Insurance', name: 'Health Insurance', amount: 480 },
+    { id: 'Medical Out-of-Pocket', name: 'Medical Out-of-Pocket', amount: 162 },
+    // Discretionary & misc.
+    { id: 'Clothing', name: 'Clothing', amount: 150 },
+    { id: 'Streaming & Subscriptions', name: 'Streaming & Subscriptions', amount: 60 },
+    { id: 'Hobbies', name: 'Hobbies', amount: 120 },
+    { id: 'Dining & Events', name: 'Dining & Events', amount: 140 },
+    { id: 'Personal Care', name: 'Personal Care', amount: 80 },
+    { id: 'Books & Supplies', name: 'Books & Supplies', amount: 72 },
+];
+
+/** Five prior months of income vs. expenses so the history chart has shape. */
+const history = (monthlyIncome: number, monthlyExpenses: number): MonthlyFinanceSnapshot[] => {
+    const wobble = [-120, 85, -40, 150, -70];
+    const now = new Date();
+    return wobble.map((delta, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (wobble.length - i), 1);
+        const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return { month, income: monthlyIncome, expenses: monthlyExpenses + delta };
+    });
+};
+
+export const createSampleFinances = (): Finances => {
+    const sampleExpenses = expenses();
+    const monthlyNetIncome = 6200;
+    return {
+        incomeType: 'net',
+        monthlyGrossIncome: Math.round(104207 / 12),
+        monthlyNetIncome,
+        filingStatus: 'married',
+        zip: '',
+        monthly401kContribution: 0,
+        annualIraContribution: 0,
+        annualItemizedDeductions: 0,
+        expenses: sampleExpenses,
+        loans: loans(),
+        incomeExpenseHistory: history(monthlyNetIncome, sampleExpenses.reduce((sum, e) => sum + e.amount, 0)),
+    };
+};
+
+export const createSampleSettings = (): Settings => ({
+    riskProfile: RiskProfile.Average,
+});

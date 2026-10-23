@@ -87,6 +87,14 @@ const PrivacyPage: React.FC = () => (
                 </p>
             </Section>
 
+            <Section title="Sample mode">
+                <p>
+                    "Try a Sample" loads a fictional household so you can explore the app. The sample data
+                    is generated in your browser, stays on your device, and is discarded when you leave sample
+                    mode or sign in. It is never added to your account.
+                </p>
+            </Section>
+
             <Section title="Storage and security">
                 <ul className="list-disc pl-5 space-y-2">
                     <li>All data is stored on Amazon Web Services and encrypted at rest and in transit (TLS).</li>

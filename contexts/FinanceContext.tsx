@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { Finances, Settings, RiskProfile, Expense, LoanType } from '../types';
 import { getEffectiveMinPayment } from '../services/loanCalculator';
 import { STANDARD_EXPENSES } from '../constants';
+import { createSampleFinances, createSampleSettings } from '../services/sampleData';
 import ImportGuestDataModal from '../components/ImportGuestDataModal';
 
 interface FinanceContextType {
@@ -23,7 +24,10 @@ interface FinanceContextType {
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { user, isGuest, isSample } = useAuth();
+
     const initialFinances = useMemo<Finances>(() => {
+        if (isSample) return createSampleFinances();
         const initialStandardExpenses: Expense[] = STANDARD_EXPENSES.map(name => ({ id: name, name, amount: 0 }));
         return {
             incomeType: 'net',
@@ -38,15 +42,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             annualItemizedDeductions: 0,
             incomeExpenseHistory: [],
         };
-    }, []);
+    }, [isSample]);
 
-    const initialSettings = useMemo<Settings>(() => ({
-        riskProfile: RiskProfile.Average,
-    }), []);
+    const initialSettings = useMemo<Settings>(() => (
+        isSample ? createSampleSettings() : { riskProfile: RiskProfile.Average }
+    ), [isSample]);
 
     const [finances, setFinances, financesLoading, deleteRemoteFinances] = useAmplifyStorage<Finances>('finances', initialFinances, 'Finances', ['expenses', 'loans', 'incomeExpenseHistory']);
     const [settings, setSettings, settingsLoading, deleteRemoteSettings] = useAmplifyStorage<Settings>('settings', initialSettings, 'Settings');
-    const { user, isGuest } = useAuth();
 
     // Guest data is never silently discarded on sign-in: if guest_finances/guest_settings
     // exist in localStorage once a real user is signed in, always ask before either

@@ -6,7 +6,7 @@ import { Loan, LoanType } from '../types';
 interface LandingPageProps {
     onSignIn: () => void;
     onSignUp: () => void;
-    onGuestMode: () => void;
+    onTrySample: () => void;
 }
 
 const DEMO_LOANS: Loan[] = [
@@ -101,7 +101,7 @@ const StatCard: React.FC<{ label: string; value: number; prefix?: string; suffix
     );
 };
 
-const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMode }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onTrySample }) => {
     const [extraPayment, setExtraPayment] = useState(0);
     const [heroVisible, setHeroVisible] = useState(false);
     const [scrollY, setScrollY] = useState(0);
@@ -332,10 +332,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onSignUp, onGuestMo
                             </button>
                         </div>
                         <button
-                            onClick={onGuestMode}
+                            onClick={onTrySample}
                             className="w-full sm:w-auto px-8 py-3 border border-dark-text-secondary/40 text-dark-text-secondary font-medium text-base rounded-xl cta-ghost mt-1"
                         >
-                            Try it with Guest Mode
+                            Try a Sample
                         </button>
                         <p className="text-xs text-dark-text-secondary mt-3">Bank Connection Optional</p>
                     </div>

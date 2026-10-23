@@ -87,14 +87,15 @@ function useAmplifyStorage<T extends object>(
   modelName: ModelName,
   jsonFields: string[] = []
 ): [T, React.Dispatch<React.SetStateAction<T>>, boolean, () => Promise<void>] {
-  const { user, isGuest } = useAuth();
+  const { user, isGuest, isSample } = useAuth();
   const model = client.models[modelName] as unknown as GenericModelClient;
 
   const getStorageKey = useCallback((userId?: string | null, guest?: boolean) => {
+    if (isSample) return `sample_${key}`;
     if (guest ?? isGuest) return `guest_${key}`;
     if (userId ?? user?.userId) return `user_${userId ?? user?.userId}_${key}`;
     return key;
-  }, [user?.userId, isGuest, key]);
+  }, [user?.userId, isGuest, isSample, key]);
 
   const readLocalStorage = useCallback((userId?: string | null, guest?: boolean): T | null => {
     try {

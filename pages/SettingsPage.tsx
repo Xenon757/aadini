@@ -8,7 +8,7 @@ import ConnectedBanksCard from '../components/ConnectedBanksCard';
 
 const SettingsPage: React.FC = () => {
     const { settings, setSettings, deleteAllData } = useFinance();
-    const { user, isGuest, signOut, openAuth, changePassword } = useAuth();
+    const { user, isGuest, isSample, signOut, openAuth, changePassword } = useAuth();
     const [pwCurrent, setPwCurrent] = useState('');
     const [pwNew, setPwNew] = useState('');
     const [pwConfirm, setPwConfirm] = useState('');
@@ -107,7 +107,7 @@ const SettingsPage: React.FC = () => {
                             <div>
                                 <p className="text-sm text-dark-text-secondary">Status</p>
                                 <p className="font-medium text-dark-text">
-                                    {isGuest ? 'Guest Mode' : user?.email || 'Signed In'}
+                                    {isSample ? 'Sample Mode' : isGuest ? 'Guest Mode' : user?.email || 'Signed In'}
                                 </p>
                             </div>
                         </div>

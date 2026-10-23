@@ -26,7 +26,10 @@ interface AuthUser {
 
 interface AuthContextType {
     user: AuthUser | null;
+    /** True in guest mode AND in sample mode (sample is a read-mostly guest variant). */
     isGuest: boolean;
+    /** True when browsing the preloaded sample profile. */
+    isSample: boolean;
     loading: boolean;
     pendingAuthMode: 'signin' | 'signup' | null;
     pendingConfirmation: { email: string } | null;
@@ -38,6 +41,8 @@ interface AuthContextType {
     confirmSignUpCode: (email: string, code: string) => Promise<void>;
     resendConfirmationCode: (email: string) => Promise<void>;
     continueAsGuest: () => void;
+    trySample: () => void;
+    startWithOwnData: () => void;
     signOut: () => Promise<void>;
     openAuth: (mode: 'signin' | 'signup') => void;
     closeAuth: () => void;
@@ -64,9 +69,17 @@ const loadCurrentUser = async (): Promise<AuthUser | null> => {
     }
 };
 
+/** Sample data is disposable: it is never imported into an account. */
+const clearSampleData = (): void => {
+    localStorage.removeItem('sampleMode');
+    localStorage.removeItem('sample_finances');
+    localStorage.removeItem('sample_settings');
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isGuest, setIsGuest] = useState<boolean>(false);
+    const [isSample, setIsSample] = useState<boolean>(false);
     const [loading, setLoading] = useState(true);
     const [pendingAuthMode, setPendingAuthMode] = useState<'signin' | 'signup' | null>(null);
     const [pendingConfirmation, setPendingConfirmation] = useState<{ email: string } | null>(null);
@@ -79,11 +92,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // (guest_finances/guest_settings stay untouched here so the data
         // layer's import prompt can still offer to migrate them.)
         const wasGuest = localStorage.getItem('guestMode') === 'true';
+        const wasSample = localStorage.getItem('sampleMode') === 'true';
         loadCurrentUser().then(u => {
             if (u) {
                 localStorage.removeItem('guestMode');
+                clearSampleData();
                 setIsGuest(false);
+                setIsSample(false);
                 setUser(u);
+            } else if (wasSample) {
+                setIsGuest(true);
+                setIsSample(true);
             } else if (wasGuest) {
                 setIsGuest(true);
             }
@@ -97,7 +116,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     // (the actual data) are left alone until the data layer's import prompt
                     // resolves, so a guest's local data is never silently discarded.
                     localStorage.removeItem('guestMode');
+                    clearSampleData();
                     setIsGuest(false);
+                    setIsSample(false);
                     loadCurrentUser().then(setUser);
                     break;
                 case 'signedOut':
@@ -201,6 +222,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPendingAuthMode(null);
     };
 
+    const trySample = () => {
+        // Start from a fresh copy of the sample profile every time.
+        clearSampleData();
+        localStorage.setItem('sampleMode', 'true');
+        setIsGuest(true);
+        setIsSample(true);
+        setPendingAuthMode(null);
+    };
+
+    // Leaves the sample and drops into a regular (empty or previously saved) guest session.
+    const startWithOwnData = () => {
+        clearSampleData();
+        localStorage.setItem('guestMode', 'true');
+        setIsSample(false);
+        setIsGuest(true);
+    };
+
     const openAuth = (mode: 'signin' | 'signup') => {
         setPendingAuthMode(mode);
     };
@@ -222,7 +260,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signOut = async (): Promise<void> => {
-        if (isGuest) {
+        if (isSample) {
+            clearSampleData();
+            setIsSample(false);
+            setIsGuest(false);
+        } else if (isGuest) {
             localStorage.removeItem('guestMode');
             localStorage.removeItem('guest_finances');
             localStorage.removeItem('guest_settings');
@@ -235,10 +277,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return (
         <AuthContext.Provider value={{
-            user, isGuest, loading, pendingAuthMode, pendingConfirmation,
+            user, isGuest, isSample, loading, pendingAuthMode, pendingConfirmation,
             authError, clearAuthError: () => setAuthError(null),
             signInWithGoogle, signInWithEmail, signUpWithEmail, confirmSignUpCode, resendConfirmationCode,
-            continueAsGuest, signOut, openAuth, closeAuth,
+            continueAsGuest, trySample, startWithOwnData, signOut, openAuth, closeAuth,
             requestPasswordReset, confirmPasswordReset, changePassword,
         }}>
             {children}

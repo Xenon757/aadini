@@ -14,7 +14,7 @@ const PayoffPlanPage = lazy(() => import('./pages/PayoffPlanPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 const AppContent: React.FC = () => {
-    const { user, isGuest, loading, pendingAuthMode, continueAsGuest, authError } = useAuth();
+    const { user, isGuest, isSample, loading, pendingAuthMode, trySample, authError } = useAuth();
     const [preAuthMode, setPreAuthMode] = useState<'signin' | 'signup' | null>(null);
 
     // Publicly reachable regardless of auth state (linked from the Plaid
@@ -41,7 +41,7 @@ const AppContent: React.FC = () => {
             <LandingPage
                 onSignIn={() => setPreAuthMode('signin')}
                 onSignUp={() => setPreAuthMode('signup')}
-                onGuestMode={continueAsGuest}
+                onTrySample={trySample}
             />
         );
     }
@@ -51,7 +51,7 @@ const AppContent: React.FC = () => {
     }
 
     return (
-        <FinanceProvider>
+        <FinanceProvider key={isSample ? 'sample' : 'live'}>
             <MainApp />
         </FinanceProvider>
     );
@@ -112,8 +112,36 @@ const AppHeader: React.FC = () => {
     );
 };
 
+/** Shown while browsing the sample profile; its data is disposable. */
+const SampleBanner: React.FC = () => {
+    const { startWithOwnData, openAuth } = useAuth();
+    return (
+        <div className="bg-accent/10 border-b border-accent/30 px-4 py-2 text-sm text-dark-text flex flex-wrap items-center justify-between gap-2">
+            <span>
+                <strong className="text-accent">Sample data.</strong> You're exploring an example household. Nothing here is saved to an account.
+            </span>
+            <span className="flex items-center gap-2">
+                <button
+                    onClick={startWithOwnData}
+                    className="font-medium text-accent hover:underline"
+                >
+                    Start with my own data
+                </button>
+                <span className="text-dark-text-secondary">·</span>
+                <button
+                    onClick={() => openAuth('signup')}
+                    className="font-medium text-dark-text-secondary hover:text-dark-text"
+                >
+                    Sign up
+                </button>
+            </span>
+        </div>
+    );
+};
+
 const MainApp: React.FC = () => {
     const { loading } = useFinance();
+    const { isSample } = useAuth();
 
     const navItems = [
         { path: '/', label: 'Home', icon: <HomeIcon /> },
@@ -138,6 +166,7 @@ const MainApp: React.FC = () => {
             <div className="flex flex-col min-h-screen bg-dark-bg text-dark-text font-sans">
                 <AppHeader />
                 <main className="flex-grow pt-14 pb-28">
+                    {isSample && <SampleBanner />}
                     <Suspense fallback={loadingFallback}>
                         <Routes>
                             <Route path="/" element={<HomePage />} />
