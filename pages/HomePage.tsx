@@ -15,6 +15,8 @@ const HomePage: React.FC = () => {
         monthlyLeftoverMoney,
         debtToIncomeRatio,
         totalDebt,
+        totalAssets,
+        netWorth,
         settings
     } = useFinance();
 
@@ -121,6 +123,8 @@ const HomePage: React.FC = () => {
                     tooltip={isDtiApproximated ? "Approximated using net income. DTI is typically calculated with gross income. A healthy DTI ratio is 36% or less" : undefined}
                 />
                 <DashboardCard title="Total Debt" value={formatCurrency(totalDebt)} onEdit={() => navigate('/finances')} />
+                <DashboardCard title="Total Assets" value={formatCurrency(totalAssets)} onEdit={() => navigate('/finances')} />
+                <DashboardCard title="Net Worth" value={formatCurrency(netWorth)} hasWarning={netWorth < 0} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

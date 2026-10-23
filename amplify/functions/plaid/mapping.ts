@@ -31,6 +31,15 @@ export interface MappedExpense {
   institutionName?: string;
 }
 
+export interface MappedAsset {
+  id: string;
+  name: string;
+  type: 'Cash' | 'Retirement' | 'Investment' | 'Real Estate' | 'Vehicle' | 'Other';
+  value: number;
+  plaidItemId: string;
+  institutionName?: string;
+}
+
 /** One aggregated month of income vs. expenses (mirrors MonthlyFinanceSnapshot). */
 export interface MappedMonthlySnapshot {
   month: string; // 'YYYY-MM'
@@ -59,6 +68,47 @@ const yearsBetween = (start: string | null | undefined, end: string | null | und
   if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return null;
   return Math.round((e - s) / (365.25 * 24 * 3600 * 1000));
 };
+
+const RETIREMENT_SUBTYPES = new Set([
+  '401a', '401k', '403b', '457b', 'ira', 'roth', 'roth 401k', 'sep ira', 'simple ira',
+  'sarsep', 'keogh', 'pension', 'retirement', 'profit sharing plan', 'thrift savings plan',
+]);
+
+/**
+ * Maps Plaid accounts to owned assets: bank accounts become Cash, and
+ * investment accounts become Retirement (401k/IRA/pension...) or Investment.
+ * Credit and loan accounts are liabilities (handled as loans) and skipped.
+ */
+export function mapAccountsToAssets(
+  accounts: AccountBase[],
+  itemId: string,
+  institutionName?: string
+): MappedAsset[] {
+  const assets: MappedAsset[] = [];
+  for (const account of accounts) {
+    let type: MappedAsset['type'];
+    if (account.type === 'depository') {
+      type = 'Cash';
+    } else if (account.type === 'investment') {
+      type = RETIREMENT_SUBTYPES.has(String(account.subtype ?? '').toLowerCase())
+        ? 'Retirement'
+        : 'Investment';
+    } else {
+      continue;
+    }
+    const value = account.balances.current ?? 0;
+    if (value <= 0) continue;
+    assets.push({
+      id: `plaid-asset-${account.account_id}`,
+      name: accountName(account, 'Account'),
+      type,
+      value,
+      plaidItemId: itemId,
+      institutionName,
+    });
+  }
+  return assets;
+}
 
 export function mapLiabilitiesToLoans(
   response: LiabilitiesGetResponse,

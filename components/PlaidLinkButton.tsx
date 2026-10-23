@@ -89,6 +89,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
                     const gotData =
                         imported.loans.length > 0 ||
                         imported.expenses.length > 0 ||
+                        imported.assets.length > 0 ||
                         imported.incomeExpenseHistory.some(m => m.income > 0 || m.expenses > 0);
                     if (gotData) break;
                     setImportHint('Fetching your data from the bank — this can take up to a minute on a new connection…');
@@ -169,7 +170,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ onImported, className
                     >
                         Sign in
                     </button>{' '}
-                    to connect your bank and import loans automatically.
+                    to connect your bank and import loans and balances automatically.
                 </p>
             </div>
         );

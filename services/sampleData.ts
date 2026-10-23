@@ -1,4 +1,4 @@
-import { Finances, Expense, Loan, LoanType, MonthlyFinanceSnapshot, RiskProfile, Settings } from '../types';
+import { Asset, AssetType, Finances, Expense, Loan, LoanType, MonthlyFinanceSnapshot, RiskProfile, Settings } from '../types';
 
 /**
  * "Try a Sample" profile: a household that reflects the average American
@@ -8,6 +8,7 @@ import { Finances, Expense, Loan, LoanType, MonthlyFinanceSnapshot, RiskProfile,
  * Income and expenses are tuned so the app's own figures line up with the
  * reference profile: $6,200/mo take-home, $622/mo discretionary spending,
  * and a $415/mo leftover margin after all expenses and loan minimums.
+ * Assets total $439,500 against $245,000 of debt: a $194,500 net worth.
  */
 
 const MORTGAGE_ID = 'sample-mortgage';
@@ -79,6 +80,12 @@ const expenses = (): Expense[] => [
     { id: 'Books & Supplies', name: 'Books & Supplies', amount: 72 },
 ];
 
+const assets = (): Asset[] => [
+    { id: 'sample-home', name: 'Home Value', type: AssetType.RealEstate, value: 350000 },
+    { id: 'sample-401k', name: 'Employer 401(k)', type: AssetType.Retirement, value: 85000 },
+    { id: 'sample-savings', name: 'Emergency Fund', type: AssetType.Cash, value: 4500 },
+];
+
 /** Five prior months of income vs. expenses so the history chart has shape. */
 const history = (monthlyIncome: number, monthlyExpenses: number): MonthlyFinanceSnapshot[] => {
     const wobble = [-120, 85, -40, 150, -70];
@@ -104,6 +111,7 @@ export const createSampleFinances = (): Finances => {
         annualItemizedDeductions: 0,
         expenses: sampleExpenses,
         loans: loans(),
+        assets: assets(),
         incomeExpenseHistory: history(monthlyNetIncome, sampleExpenses.reduce((sum, e) => sum + e.amount, 0)),
     };
 };

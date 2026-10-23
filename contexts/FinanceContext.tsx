@@ -14,6 +14,8 @@ interface FinanceContextType {
     setSettings: React.Dispatch<React.SetStateAction<Settings>>;
     monthlyDebtPayments: number;
     totalDebt: number;
+    totalAssets: number;
+    netWorth: number;
     monthlyExpensesTotal: number;
     monthlyLeftoverMoney: number;
     debtToIncomeRatio: number;
@@ -37,6 +39,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             zip: '',
             expenses: initialStandardExpenses,
             loans: [],
+            assets: [],
             monthly401kContribution: 0,
             annualIraContribution: 0,
             annualItemizedDeductions: 0,
@@ -48,7 +51,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isSample ? createSampleSettings() : { riskProfile: RiskProfile.Average }
     ), [isSample]);
 
-    const [finances, setFinances, financesLoading, deleteRemoteFinances] = useAmplifyStorage<Finances>('finances', initialFinances, 'Finances', ['expenses', 'loans', 'incomeExpenseHistory']);
+    const [finances, setFinances, financesLoading, deleteRemoteFinances] = useAmplifyStorage<Finances>('finances', initialFinances, 'Finances', ['expenses', 'loans', 'assets', 'incomeExpenseHistory']);
     const [settings, setSettings, settingsLoading, deleteRemoteSettings] = useAmplifyStorage<Settings>('settings', initialSettings, 'Settings');
 
     // Guest data is never silently discarded on sign-in: if guest_finances/guest_settings
@@ -145,9 +148,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
     }, [finances.loans]);
 
-    const { monthlyDebtPayments, totalDebt, monthlyExpensesTotal, monthlyLeftoverMoney, debtToIncomeRatio } = useMemo(() => {
+    const { monthlyDebtPayments, totalDebt, totalAssets, netWorth, monthlyExpensesTotal, monthlyLeftoverMoney, debtToIncomeRatio } = useMemo(() => {
         const totalDebt = finances.loans.reduce((acc, loan) => acc + loan.balance, 0);
         
+        const totalAssets = (finances.assets ?? []).reduce((acc, asset) => acc + asset.value, 0);
+
         const monthlyDebtPayments = finances.loans.reduce((acc, loan) => acc + getEffectiveMinPayment(loan), 0);
         
         const monthlyExpensesTotal = finances.expenses.reduce((acc, expense) => acc + expense.amount, 0);
@@ -162,6 +167,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return {
             monthlyDebtPayments,
             totalDebt,
+            totalAssets,
+            netWorth: totalAssets - totalDebt,
             monthlyExpensesTotal,
             monthlyLeftoverMoney,
             debtToIncomeRatio,
@@ -205,6 +212,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setSettings,
         monthlyDebtPayments,
         totalDebt,
+        totalAssets,
+        netWorth,
         monthlyExpensesTotal,
         monthlyLeftoverMoney,
         debtToIncomeRatio,

@@ -20,10 +20,12 @@ import type { Schema } from '../../data/resource';
 import {
   mapLiabilitiesToLoans,
   mapRecurringToExpenses,
+  mapAccountsToAssets,
   mapTransactionsToMonthlyHistory,
   detectRecurringExpenses,
   MappedLoan,
   MappedExpense,
+  MappedAsset,
   MappedMonthlySnapshot,
 } from './mapping';
 import type { Transaction } from 'plaid';
@@ -217,11 +219,12 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
   }
   const now = new Date().toISOString();
   if (tokens.length === 0) {
-    return { loans: [], expenses: [], incomeExpenseHistory: [], syncedItemIds: [], lastSyncedAt: now };
+    return { loans: [], expenses: [], assets: [], incomeExpenseHistory: [], syncedItemIds: [], lastSyncedAt: now };
   }
 
   const allLoans: MappedLoan[] = [];
   const allExpenses: MappedExpense[] = [];
+  const allAssets: MappedAsset[] = [];
   const allTransactions: Transaction[] = [];
   const syncedItemIds: string[] = [];
 
@@ -238,6 +241,11 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
       filter: { itemId: { eq: token.itemId } },
     });
     const institutionName = items[0]?.institutionName ?? undefined;
+
+    // Bank/investment balances become assets. accountsGet works for every
+    // item; investment accounts only appear if the user consented to them.
+    const accountsResp = await plaid.accountsGet({ access_token: token.accessToken });
+    allAssets.push(...mapAccountsToAssets(accountsResp.data.accounts, token.itemId, institutionName));
 
     try {
       const liabilities = await plaid.liabilitiesGet({ access_token: token.accessToken });
@@ -298,7 +306,7 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
 
   console.log(
     `syncPlaidData result: items=${tokens.length} loans=${allLoans.length} ` +
-    `expenses=${allExpenses.length} txns=${allTransactions.length} ` +
+    `expenses=${allExpenses.length} assets=${allAssets.length} txns=${allTransactions.length} ` +
     `historyMonthsWithData=${incomeExpenseHistory.filter(m => m.income > 0 || m.expenses > 0).length}`
   );
 
@@ -307,6 +315,7 @@ async function syncPlaidData(sub: string, args: PlaidArgs) {
   return {
     loans: allLoans,
     expenses: allExpenses,
+    assets: allAssets,
     incomeExpenseHistory,
     syncedItemIds,
     lastSyncedAt: now,

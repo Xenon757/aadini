@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
-import { Finances, Expense, Loan, LoanType } from '../types';
+import { Finances, Expense, Loan, LoanType, Asset, AssetType } from '../types';
 import { LOAN_TERMS, EXPENSE_CATEGORIES } from '../constants';
 import { computeMonthlyTakeHome, zipToState, getLocalInfo, getStateName, getStateStdDed } from '../services/taxCalculator';
 import { PlusCircleIcon, TrashIcon } from '../components/Icons';
@@ -341,6 +341,24 @@ const FinancesPage: React.FC = () => {
         }));
     };
 
+    const assets = finances.assets ?? [];
+
+    const handleAddAsset = () => {
+        const newAsset: Asset = { id: `asset-${Date.now()}`, name: 'New Asset', type: AssetType.Cash, value: 0 };
+        setFinances(prev => ({ ...prev, assets: [...(prev.assets ?? []), newAsset] }));
+    };
+
+    const handleAssetChange = (id: string, field: keyof Asset, value: any) => {
+        setFinances(prev => ({
+            ...prev,
+            assets: (prev.assets ?? []).map(asset => asset.id === id ? { ...asset, [field]: value } : asset),
+        }));
+    };
+
+    const handleRemoveAsset = (id: string) => {
+        setFinances(prev => ({ ...prev, assets: (prev.assets ?? []).filter(asset => asset.id !== id) }));
+    };
+
     const getCalculatedMin = (loan: Loan) =>
         calculateMinimumPayment(loan.originalAmount > 0 ? loan.originalAmount : loan.balance, loan.apr, loan.term);
 
@@ -636,6 +654,56 @@ const FinancesPage: React.FC = () => {
                     <button onClick={handleAddLoan} className="mt-6 border-2 border-dashed border-dark-border text-dark-text-secondary w-full py-2 rounded-lg hover:bg-dark-border hover:text-dark-text transition flex items-center justify-center gap-2">
                         <PlusCircleIcon />
                         <span>Add Another Loan</span>
+                    </button>
+                </div>
+
+                {/* Your Assets */}
+                <div className="bg-dark-card p-6 sm:p-8 rounded-lg border border-dark-border">
+                    <h2 className="text-xl font-semibold mb-2">Your Assets & Savings</h2>
+                    <p className="text-sm text-dark-text-secondary mb-6">
+                        Cash, retirement accounts, and property you own. Together with your loans, these make up your net worth.
+                        Connecting a bank under Your Loans also imports your account balances here.
+                    </p>
+                    <div className="space-y-5">
+                        {assets.map(asset => (
+                            <div key={asset.id} className="bg-gray-900/50 p-5 rounded-lg border border-dark-border">
+                                <div className="flex justify-between items-center mb-4">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <input
+                                            type="text"
+                                            value={asset.name}
+                                            onChange={e => handleAssetChange(asset.id, 'name', e.target.value)}
+                                            className="text-lg font-semibold bg-transparent border-0 p-0 focus:ring-0 focus:text-accent"
+                                            placeholder="Asset Name"
+                                        />
+                                        {asset.plaidItemId && (
+                                            <span className="flex-shrink-0 text-xs bg-accent/10 text-accent border border-accent/30 rounded-full px-2 py-0.5">
+                                                🏦 {asset.institutionName ?? 'bank'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <button onClick={() => handleRemoveAsset(asset.id)} className="text-red-500 hover:text-red-400">
+                                        <TrashIcon />
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="text-sm text-dark-text-secondary mb-1 block">Asset Type</label>
+                                        <select value={asset.type} onChange={e => handleAssetChange(asset.id, 'type', e.target.value as AssetType)} className="w-full bg-dark-bg border-dark-border rounded-md">
+                                            {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-dark-text-secondary mb-1 block">Current Value ($)</label>
+                                        <input type="number" value={asset.value} onFocus={(e) => e.target.select()} onChange={e => handleAssetChange(asset.id, 'value', parseFloat(e.target.value) || 0)} className="w-full bg-dark-bg border-dark-border rounded-md" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={handleAddAsset} className="mt-6 border-2 border-dashed border-dark-border text-dark-text-secondary w-full py-2 rounded-lg hover:bg-dark-border hover:text-dark-text transition flex items-center justify-center gap-2">
+                        <PlusCircleIcon />
+                        <span>Add Another Asset</span>
                     </button>
                 </div>
             </div>

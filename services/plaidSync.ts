@@ -1,8 +1,9 @@
-import { Finances, Loan, Expense, MonthlyFinanceSnapshot } from '../types';
+import { Finances, Loan, Expense, Asset, MonthlyFinanceSnapshot } from '../types';
 
 export interface PlaidImport {
     loans: Loan[];
     expenses: Expense[];
+    assets: Asset[];
     incomeExpenseHistory: MonthlyFinanceSnapshot[];
 }
 
@@ -18,6 +19,8 @@ export interface PlaidImport {
  *   `name`, `type`, `term`, `monthlyPropertyTax`.
  * - Existing imported expense (same plaid-recurring- id): refresh
  *   `amount` only, keep any user-edited name.
+ * - Existing imported asset (same plaid-asset- id): refresh `value` only,
+ *   keep any user-edited name/type.
  * - New ids are appended. Accounts/streams that vanished from Plaid are
  *   left in place (manual cleanup in v1).
  */
@@ -57,6 +60,20 @@ export function mergePlaidData(current: Finances, imported: PlaidImport): Financ
     });
     mergedExpenses.push(...importedExpensesById.values());
 
+    const importedAssetsById = new Map(imported.assets.map(a => [a.id, a]));
+    const mergedAssets: Asset[] = (current.assets ?? []).map(asset => {
+        const update = importedAssetsById.get(asset.id);
+        if (!update) return asset;
+        importedAssetsById.delete(asset.id);
+        return {
+            ...asset,
+            value: update.value,
+            plaidItemId: update.plaidItemId,
+            institutionName: update.institutionName ?? asset.institutionName,
+        };
+    });
+    mergedAssets.push(...importedAssetsById.values());
+
     // Plaid's transaction-derived history is authoritative for the 12 months it
     // covers, so replace wholesale when present; otherwise keep what we have
     // (e.g. transactions weren't ready yet, or a manual-only user's snapshots).
@@ -65,7 +82,7 @@ export function mergePlaidData(current: Finances, imported: PlaidImport): Financ
             ? imported.incomeExpenseHistory
             : current.incomeExpenseHistory;
 
-    return { ...current, loans: mergedLoans, expenses: mergedExpenses, incomeExpenseHistory };
+    return { ...current, loans: mergedLoans, expenses: mergedExpenses, assets: mergedAssets, incomeExpenseHistory };
 }
 
 /**
@@ -83,10 +100,16 @@ export function unlinkPlaidItem(current: Finances, itemId: string): Finances {
         const { plaidItemId, institutionName, ...rest } = expense;
         return rest;
     };
+    const stripAsset = (asset: Asset): Asset => {
+        if (asset.plaidItemId !== itemId) return asset;
+        const { plaidItemId, institutionName, ...rest } = asset;
+        return rest;
+    };
     return {
         ...current,
         loans: current.loans.map(stripLoan),
         expenses: current.expenses.map(stripExpense),
+        assets: (current.assets ?? []).map(stripAsset),
     };
 }
 
@@ -96,7 +119,7 @@ export function unlinkPlaidItem(current: Finances, itemId: string): Finances {
  * JSON strings depending on how many serialization layers applied —
  * unwrap string layers until we hit a non-string.
  */
-export function parseSyncResult(result: { loans?: unknown; expenses?: unknown; incomeExpenseHistory?: unknown } | null | undefined): PlaidImport {
+export function parseSyncResult(result: { loans?: unknown; expenses?: unknown; assets?: unknown; incomeExpenseHistory?: unknown } | null | undefined): PlaidImport {
     const parse = <T,>(value: unknown): T[] => {
         let v = value;
         for (let depth = 0; depth < 3 && typeof v === 'string'; depth++) {
@@ -111,6 +134,7 @@ export function parseSyncResult(result: { loans?: unknown; expenses?: unknown; i
     return {
         loans: parse<Loan>(result?.loans),
         expenses: parse<Expense>(result?.expenses),
+        assets: parse<Asset>(result?.assets),
         incomeExpenseHistory: parse<MonthlyFinanceSnapshot>(result?.incomeExpenseHistory),
     };
 }

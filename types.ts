@@ -23,6 +23,26 @@ export interface Expense {
     institutionName?: string;
 }
 
+export enum AssetType {
+    Cash = "Cash",
+    Retirement = "Retirement",
+    Investment = "Investment",
+    RealEstate = "Real Estate",
+    Vehicle = "Vehicle",
+    Other = "Other",
+}
+
+/** Something owned (cash, retirement, home value...). Counts toward net worth. */
+export interface Asset {
+    id: string;
+    name: string;
+    type: AssetType;
+    value: number;
+    /** Set when imported via Plaid; links the asset to a connected bank. */
+    plaidItemId?: string;
+    institutionName?: string;
+}
+
 export enum LoanType {
     CreditCard = "Credit Card",
     Mortgage = "Mortgage",
@@ -55,6 +75,8 @@ export interface Finances {
     annualItemizedDeductions: number;
     expenses: Expense[];
     loans: Loan[];
+    /** Optional for records saved before assets existed; treat missing as []. */
+    assets?: Asset[];
     /** Rolling history of the last 12 months of income vs. expenses. */
     incomeExpenseHistory?: MonthlyFinanceSnapshot[];
 }

@@ -25,6 +25,7 @@ const schema = a.schema({
       annualItemizedDeductions: a.float(),
       expenses: a.json(),
       loans: a.json(),
+      assets: a.json(),
       // Rolling 12-month [{month, income, expenses}] snapshots (from the
       // Plaid transaction aggregation). Must exist here or every Finances
       // create/update containing it is rejected by AppSync.
@@ -74,6 +75,7 @@ const schema = a.schema({
   PlaidSyncResult: a.customType({
     loans: a.json().required(),
     expenses: a.json().required(),
+    assets: a.json(),
     // Rolling 12-month [{ month, income, expenses }] aggregated from transactions.
     incomeExpenseHistory: a.json(),
     syncedItemIds: a.string().array(),
