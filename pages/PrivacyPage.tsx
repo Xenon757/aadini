@@ -25,7 +25,7 @@ const PrivacyPage: React.FC = () => (
                 <p>
                     Modulos is a personal debt management application that helps you track loans,
                     expenses, and build a debt payoff plan. It is operated by an individual developer.
-                    Contact: <a href="mailto:aadibelwal@gmail.com" className="text-accent hover:text-accent-hover">aadibelwal@gmail.com</a>.
+                    Contact: <a href="mailto:sri.meduri@berkeley.edu" className="text-accent hover:text-accent-hover">sri.meduri@berkeley.edu</a>.
                 </p>
             </Section>
 
@@ -107,7 +107,7 @@ const PrivacyPage: React.FC = () => (
                     </li>
                     <li>
                         To delete your account entirely, contact{' '}
-                        <a href="mailto:aadibelwal@gmail.com" className="text-accent hover:text-accent-hover">aadibelwal@gmail.com</a>.
+                        <a href="mailto:sri.meduri@berkeley.edu" className="text-accent hover:text-accent-hover">sri.meduri@berkeley.edu</a>.
                     </li>
                 </ul>
             </Section>
